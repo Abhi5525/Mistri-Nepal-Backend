@@ -1,0 +1,2 @@
+## FOLDER NAME : common
+This folder contains the common schema, models and enums that are used across the entire application. It is a good practice to keep these shared resources in a separate folder to maintain a clean and organized codebase.
