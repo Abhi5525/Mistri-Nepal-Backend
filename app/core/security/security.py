@@ -50,7 +50,3 @@ def decode_token(token: str) -> dict:
             detail="Invalid or expired token",
         )
 
-def validate_phone_number(phone: str) -> bool:
-    """Validate Nepal phone number format (98XXXXXXXX)"""
-    pattern = r'^98\d{8}$'
-    return bool(re.match(pattern, phone))
