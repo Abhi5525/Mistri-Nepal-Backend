@@ -24,15 +24,17 @@ CREATE TABLE users (
     full_name VARCHAR(100) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     is_client BOOLEAN DEFAULT TRUE,
-    is_professional BOOLEAN DEFAULT FALSE,
+    role_id INTEGER REFERENCES roles(id),
     is_active BOOLEAN DEFAULT TRUE,
-    is_staff BOOLEAN DEFAULT FALSE,
-    is_superuser BOOLEAN DEFAULT FALSE,
     fcm_token VARCHAR(255),  -- Firebase Cloud Messaging token for push notifications
     last_login TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+-- Role table{
+--     id SERIAL PRIMARY KEY,
+--     role:Enum VARCHAR(50) UNIQUE NOT NULL
+-- }
 
 -- Indexes for common queries
 CREATE INDEX idx_users_phone ON users(phone_number);
