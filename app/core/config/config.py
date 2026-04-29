@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str
+    DB_USER: str
+    DB_PASSWORD: str
+    DB_HOST: str
+    DB_PORT: str
+    DB_NAME: str
     
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
