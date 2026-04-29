@@ -35,6 +35,12 @@ class Settings(BaseSettings):
     # Firebase
     FIREBASE_CREDENTIALS_PATH: str = "./serviceAccountKey.json"
     
+    # Cloudinary settings
+    CLOUDINARY_CLOUD_NAME: str
+    CLOUDINARY_API_KEY: str
+    CLOUDINARY_API_SECRET: str
+    CLOUDINARY_FOLDER: str 
+    
     # eSewa
     ESEWA_MERCHANT_CODE: str = "EPAYTEST"
     ESEWA_SECRET_KEY: str = "8gBm/:&EnhH.1/q"
