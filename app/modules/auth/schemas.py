@@ -88,9 +88,7 @@ class UserUpdate(BaseModel):
     full_name: str
     phone_number: str
     email: Optional[str] = None
-    is_client: bool = True
-    is_active: bool = True
-
+    
 class PasswordChange(BaseModel):
     """Model for changing user password"""
     old_password: str 
