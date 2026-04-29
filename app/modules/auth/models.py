@@ -1,24 +1,39 @@
-from sqlalchemy import Boolean, column, Integer, String, DateTime
-from sqlalchemy import func
+from typing import TYPE_CHECKING, List
+
+from app.common.models.timestamp_mixin import TimestampMixin
 from app.core.db.database import Base 
+from sqlalchemy import String, ForeignKey
+from sqlalchemy.dialects.postgresql import ENUM as SQLEnum ,JSONB
+from sqlalchemy.orm import Mapped, relationship, mapped_column
+from app.common.enum.role_enum import RoleEnum
 
-class User(Base):
-    __tablename__ = "users"
+if TYPE_CHECKING:
+    from app.modules.users.models import User
+class Authorization(Base, TimestampMixin):
+    __tablename__ = "authorization"
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, index=True)
+    role_id: Mapped[str] = mapped_column(ForeignKey("role.id"), nullable=False)
+    path: Mapped[str] = mapped_column(String, nullable=False)
+    methods: Mapped[List[str]] = mapped_column(JSONB, nullable=False)
 
-    id = column(Integer, primary_key=True, index=True)
-    phone_number = column(String(10), unique=True, index=True, nullable=False)
-    email = column(String(255), unique=True, index=True, nullable=False)
-    full_name = column(String(255), nullable=False)
-    password = column(String(255), nullable=False)
-    is_client = column(Boolean, default=True)
-    is_professional = column(Boolean, default=False)
-    is_active = column(Boolean, default=True)
-    is_staff = column(Boolean, default=False)
-    is_superuser = column(Boolean, default=False)
-    fcm_token = column(String(255), nullable=True)
-    created_at = column(DateTime(timezone=True), server_default=func.now())
-    updated_at = column(DateTime(timezone=True), onupdate=func.now())
-    last_login = column(DateTime(timezone=True), nullable=True)
-    def __repr__(self):
-        return f"<User(id={self.id}, phone_number='{self.phone_number}', email='{self.email}', full_name='{self.full_name}')>"
-   
+    # Use string reference
+    role: Mapped["Role"] = relationship(back_populates="authorization")
+
+
+class Role(Base, TimestampMixin):
+    __tablename__ = "role"
+
+    id: Mapped[str] = mapped_column(String(8), primary_key=True, index=True)
+    role: Mapped[RoleEnum] = mapped_column(
+        SQLEnum(RoleEnum, name="role_enum"), nullable=False
+    )
+    description: Mapped[str] = mapped_column(String, nullable=True)
+
+    # Use string reference to avoid circular import
+    users: Mapped[List["User"]] = relationship(
+        back_populates="role", cascade="all, delete"
+    )
+    authorization: Mapped[List["Authorization"]] = relationship(
+        back_populates="role", cascade="all, delete"
+    )
+    

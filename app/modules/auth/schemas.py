@@ -1,8 +1,6 @@
 from typing import Optional
-from datetime import datetime
 import re
-import re
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class UserRegister(BaseModel):
     full_name: str = Field(..., min_length=3, max_length=100)
@@ -74,6 +72,7 @@ class TokenData(BaseModel):
 
 class UserResponse(BaseModel):
     """User response model"""
+    model_config = ConfigDict(from_attributes=True)
     id: int
     full_name: str
     phone_number: str
@@ -81,18 +80,16 @@ class UserResponse(BaseModel):
     is_client: bool = True
     is_professional: bool = False
     is_active: bool = True
-    class config:
-        from_attributes = True
 
 class UserUpdate(BaseModel):
     """User update model"""
+    model_config = ConfigDict(from_attributes=True)
+    
     full_name: str
     phone_number: str
     email: Optional[str] = None
     is_client: bool = True
     is_active: bool = True
-    class config:
-        from_attributes = True
 
 class PasswordChange(BaseModel):
     """Model for changing user password"""
