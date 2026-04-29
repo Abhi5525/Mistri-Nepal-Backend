@@ -1,3 +1,4 @@
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from app.core.config.config import settings
@@ -19,6 +20,21 @@ AsyncSessionLocal = sessionmaker(
     expire_on_commit=False,
     autocommit=False,
     autoflush=False
+)
+# ✅ Sync database URL uses psycopg2
+SYNC_DATABASE_URL = (
+    f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
+)
+# ------------------ SYNC ENGINE ------------------
+sync_engine = create_engine(
+    SYNC_DATABASE_URL,
+    connect_args={"options": "-c search_path=public"},
+)
+
+SyncSessionLocal = sessionmaker(
+    bind=sync_engine,
+    autoflush=False,
+    autocommit=False,
 )
 
 # Base class for models
