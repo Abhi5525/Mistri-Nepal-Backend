@@ -1,6 +1,13 @@
-from typing import Optional
 import re
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
+
+from app.common.enum.role_enum import RoleEnum
+from app.modules.users.schemas import UserResponse
+
+class JwtPayload(BaseModel):
+    sub: str
+    role: RoleEnum
+    name: str
 
 class UserRegister(BaseModel):
     full_name: str = Field(..., min_length=3, max_length=100)
@@ -41,6 +48,10 @@ class UserRegister(BaseModel):
         if "password" in info.data and v != info.data["password"]:
             raise ValueError("Passwords do not match")
         return v
+
+class UserRegistrationSuccessResponse(BaseModel):
+    message: str = "Registration successful. Please log in to continue."
+    data: UserResponse
     
 class UserLogin(BaseModel):
     phone_number: str = Field(..., min_length=10, max_length=10)
@@ -62,33 +73,6 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
 
-class TokenData(BaseModel):
-    """Data contained in JWT token payload"""
-    user_id: Optional[int] = None
-    full_name: Optional[str] = None 
-    is_client: Optional[bool] = True
-    is_professional: Optional[bool] = False
-    phone_number: Optional[str] = None
-
-class UserResponse(BaseModel):
-    """User response model"""
-    model_config = ConfigDict(from_attributes=True)
-    id: int
-    full_name: str
-    phone_number: str
-    email: Optional[str] = None
-    is_client: bool = True
-    is_professional: bool = False
-    is_active: bool = True
-
-class UserUpdate(BaseModel):
-    """User update model"""
-    model_config = ConfigDict(from_attributes=True)
-    
-    full_name: str
-    phone_number: str
-    email: Optional[str] = None
-    
 class PasswordChange(BaseModel):
     """Model for changing user password"""
     old_password: str 
