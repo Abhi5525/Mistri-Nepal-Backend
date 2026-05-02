@@ -1,0 +1,41 @@
+# core/authorization.py
+
+from fastapi import Depends, HTTPException, Request
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.security import get_current_user
+from app.core.db.database import get_db
+from app.modules.auth.models import Authorization, Role
+from app.modules.auth.schemas import JwtPayload
+
+async def authorize(
+    request: Request,
+    user: JwtPayload = Depends(get_current_user),  # Ensure JWT + User is loaded
+    db: AsyncSession = Depends(get_db),
+):
+    user_role = user.role
+    path = request.scope["route"].path
+    method = request.method
+
+    role_result = await db.execute(select(Role).where(Role.role == user_role))
+    role = role_result.scalar_one_or_none()
+    if not role:
+        raise HTTPException(404, "Role not found")
+
+    # Check DB for path + method + role + organization
+    permissions = await db.execute(
+        select(Authorization).where(
+            Authorization.role == role,
+            Authorization.path == path,
+        )
+    )
+
+    permission = permissions.scalars().first()
+    if not permission:
+        raise HTTPException(403, "Access denied to this path")
+
+    if method not in permission.methods:
+        raise HTTPException(403, "Method not allowed")
+
+    return True
