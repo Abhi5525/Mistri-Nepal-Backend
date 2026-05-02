@@ -1,13 +1,15 @@
-from datetime import datetime, timedelta
-from typing import Optional
+import datetime
 import jwt
-from passlib.context import CryptContext
-from fastapi import HTTPException, status
+from pwdlib import PasswordHash
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPBearer
 from app.core.config.config import settings
-import re
+
+from app.modules.auth.schemas import JwtPayload
 
 # Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = PasswordHash.recommended()
+oauth2 = HTTPBearer(auto_error=False)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a hashed password"""
@@ -17,27 +19,24 @@ def get_password_hash(password: str) -> str:
     """Hash a password using bcrypt"""
     return pwd_context.hash(password)
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create JWT access token"""
-    to_encode = data.copy()
-    
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+def create_access_token(data: JwtPayload):
+    to_encode = data.model_dump().copy()
+    print(f"Token payload before encoding: {to_encode}")
+    expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+        days=settings.ACCESS_TOKEN_EXPIRE_DAYS
+    )
     to_encode.update({"exp": expire, "type": "access"})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
+    print(f"Token payload after adding expiration: {to_encode}")
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
-def create_refresh_token(data: dict) -> str:
-    """Create JWT refresh token with longer expiry"""
+
+def create_refresh_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    
+    expire = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+        days=settings.REFRESH_TOKEN_EXPIRE_DAYS
+    )
     to_encode.update({"exp": expire, "type": "refresh"})
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 def decode_token(token: str) -> dict:
     """Decode and validate JWT token"""
@@ -50,3 +49,36 @@ def decode_token(token: str) -> dict:
             detail="Invalid or expired token",
         )
 
+async def get_current_user(
+    request: Request,
+    token: str = Depends(oauth2),
+) -> JwtPayload :
+    auth_header = request.headers.get("authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="No authentication token provided")
+
+    token = auth_header[7:]  # Remove "Bearer " prefix
+
+    try:
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
+        # print("Decoded JWT payload:", payload)
+
+        # Try to validate the payload, but handle validation errors gracefully
+        try:
+            # Remove exp field for validation as it's added by JWT library
+            validation_payload = {k: v for k, v in payload.items() if k != "exp"}
+            validated_payload = JwtPayload.model_validate(validation_payload)
+            # print("Successfully validated payload:", validated_payload)
+        except Exception as validation_error:
+            print(f"Payload validation warning (continuing anyway): {validation_error}")
+            # Continue with the raw payload if validation fails
+
+        return JwtPayload.model_validate(payload)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=401, detail="Invalid token, reenter authentication token"
+        )
