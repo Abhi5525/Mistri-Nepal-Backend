@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     # App
     APP_NAME: str = "Mistri Nepal API"
     APP_VERSION: str = "1.0.0"
+    API_VERSION_PREFIX: str = "/api/v1"
     DEBUG: bool = True
     
     # Database
