@@ -3,10 +3,10 @@ from fastapi import APIRouter
 # from fastapi.responses import JSONResponse  # type: ignore
 from app.core.config.config import settings
 
-router = APIRouter()
+app_health_router = APIRouter()
 
 
-@router.get("/health", tags=["Health"])
+@app_health_router.get("/health", tags=["Health"])
 async def health_check():
     """Health check endpoint"""
     return {

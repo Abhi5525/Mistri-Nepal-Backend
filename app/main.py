@@ -4,7 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.core.config.config import settings
 from fastapi import status
-from app.core.app.app_health import router as app_health_router
+from app.core.app.app_health import app_health_router
+from app.modules.auth.router import auth_router
 
 app = FastAPI(
     title=settings.APP_NAME,
@@ -63,8 +64,9 @@ async def response_validation_exception_handler(
         },
     )
 
-
+app.router.prefix = settings.API_VERSION_PREFIX
 app.include_router(app_health_router)
+app.include_router(auth_router)
 if __name__ == "__main__":
     import uvicorn
 
