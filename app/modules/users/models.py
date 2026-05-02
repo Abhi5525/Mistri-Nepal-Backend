@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from app.modules.auth.models import Role
 
 class User(Base, TimestampMixin):
-    __tablename__ = "users"
+    __tablename__ = "user"
 
     id: Mapped[str] = mapped_column(String(13), primary_key=True, index=True)
 
@@ -18,7 +18,7 @@ class User(Base, TimestampMixin):
         String(10), unique=True, index=True, nullable=False
     )
     email: Mapped[str] = mapped_column(
-        String(255), unique=True, index=True, nullable=False
+        String(255), unique=True, index=True, nullable=True
     )
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
