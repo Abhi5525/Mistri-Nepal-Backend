@@ -8,6 +8,7 @@ from app.common.models.timestamp_mixin import TimestampMixin
 from app.core.db.database import Base
 if TYPE_CHECKING:
     from app.modules.auth.models import Role
+    from app.modules.file.models import File 
 
 class User(Base, TimestampMixin):
     __tablename__ = "user"
@@ -33,7 +34,8 @@ class User(Base, TimestampMixin):
 
     # 🔥 Relationship (many users → one role)
     role: Mapped["Role"] = relationship(back_populates="users")
-
+    files: Mapped[list["File"]] = relationship(back_populates="user")
+    
     last_login: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
