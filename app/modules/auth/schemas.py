@@ -7,7 +7,7 @@ from app.modules.users.schemas import UserResponse
 class JwtPayload(BaseModel):
     sub: str
     role: RoleEnum
-    name: str
+    full_name: str
 
 class UserRegister(BaseModel):
     full_name: str = Field(..., min_length=3, max_length=100)
@@ -66,12 +66,28 @@ class UserLogin(BaseModel):
             raise ValueError("Must be a valid Nepal number starting with 98")
         return v
     
-class TokenResponse(BaseModel):
-    """Response model for authentication tokens"""
+class LoginData(BaseModel):
     access_token: str
     refresh_token: str
-    token_type: str = "bearer"
-    expires_in: int
+    user: "UserResponse"
+
+
+class LoginResponse(BaseModel):
+    message: str = "Login successful"
+    data: LoginData
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+class RefreshTokenData(BaseModel):
+    access_token: str
+    refresh_token: str
+
+class RefreshTokenResponse(BaseModel):
+    message: str = "Token refreshed successfully"
+    data: RefreshTokenData
+
+
 
 class PasswordChange(BaseModel):
     """Model for changing user password"""
