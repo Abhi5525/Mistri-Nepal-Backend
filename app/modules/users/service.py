@@ -1,4 +1,5 @@
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from app.common.enum.role_enum import RoleEnum
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
@@ -46,3 +47,14 @@ async def create_user(
         print("Error in create_user:", str(e))
         raise HTTPException(500, "Internal Server Error - Failed to create user")
     return new_user
+
+async def get_user_by_phone_number(db: AsyncSession, phone_number: str):
+    result = await db.execute(
+        select(User).options(selectinload(User.role)).where(User.phone_number == phone_number)
+    )
+    return result.scalar_one_or_none()
+
+async def get_authenticated_user(db: AsyncSession, user_id: str, role: RoleEnum):
+    query = select(User).where(User.id == user_id).options(selectinload(User.role))
+    result = await db.execute(query)
+    return result.scalar_one_or_none()
