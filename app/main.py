@@ -1,13 +1,28 @@
 from fastapi import FastAPI, Request
+from contextlib import asynccontextmanager
 from fastapi.exceptions import RequestValidationError, ResponseValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from app.core.config.cloudinary_config import configure_cloudinary
 from app.core.config.config import settings
 from fastapi import status
 from app.core.app.app_health import app_health_router
 from app.modules.auth.router import auth_router
+from app.modules.file.router import file_router
+
+def startup_event():
+    configure_cloudinary()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup code
+    startup_event()
+    yield
+
 
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     description="API for Mistri Nepal",
@@ -67,6 +82,7 @@ async def response_validation_exception_handler(
 app.router.prefix = settings.API_VERSION_PREFIX
 app.include_router(app_health_router)
 app.include_router(auth_router)
+app.include_router(file_router)
 if __name__ == "__main__":
     import uvicorn
 
