@@ -38,9 +38,9 @@ async def save_file(
                 raise HTTPException(
                     status_code=400, detail="Profile file already exists for user"
                 )
-        url, public_id = await upload_file_cloudinary(file, folder="arogyga_images")
+        url, public_id = await upload_file_cloudinary(file, folder="mistri-nepal")
         new_file = File(
-            file_id="F" + StringUtils.randomAlphaNumeric(7),
+            file_id="FL_" + StringUtils.randomAlphaNumeric(10),
             public_id=public_id,
             file_url=url,
             file_type=file_type,
