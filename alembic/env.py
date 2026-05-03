@@ -5,6 +5,7 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import create_async_engine
 from app.modules.auth.models import Role, Authorization
+from app.modules.file.models import File
 from app.modules.users.models import User
 from alembic import context
 
