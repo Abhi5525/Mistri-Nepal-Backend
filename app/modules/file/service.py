@@ -98,7 +98,7 @@ async def update_file(
                 file_obj = existing_profile
 
         new_url, new_public_id = await upload_file_cloudinary(
-            file, folder="arogyga_images"
+            file, folder="mistri-nepal"
         )
         logger.info(f"Deleting file with ID: {file_obj.public_id}")
         await delete_file_cloudinary(file_obj.public_id)

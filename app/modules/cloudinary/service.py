@@ -1,27 +1,35 @@
 import cloudinary.uploader
 from cloudinary.utils import cloudinary_url
-from fastapi import UploadFile
+from fastapi import HTTPException, UploadFile
 
+from starlette.concurrency import run_in_threadpool
 
 # Upload image
 async def upload_file_cloudinary(file: UploadFile, folder: str):
     """Upload file to Cloudinary"""
+
+    try:
     # Read file content
-    file_content = await file.read()
+        result = await run_in_threadpool(
+            cloudinary.uploader.upload,
+            file.file,
+            folder=folder,
+            resource_type="auto"
+        )
 
-    # Upload to Cloudinary
-    result = cloudinary.uploader.upload(file_content, folder=folder)
+        return result.get("secure_url") or result.get("url"), result.get("public_id")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-    # Reset file pointer in case it needs to be read again
-    await file.seek(0)
-
-    return result.get("secure_url") or result.get("url"), result.get("public_id")
 
 
 # Delete image using public_id
 async def delete_file_cloudinary(public_id: str):
-    return cloudinary.uploader.destroy(public_id)
-
+    """Delete file from Cloudinary using public_id"""
+    try:
+        await run_in_threadpool(cloudinary.uploader.destroy, public_id, resource_type="auto")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Generate transformed URL
 async def generate_url_cloudinary(public_id, width=None, height=None, crop="fill"):
