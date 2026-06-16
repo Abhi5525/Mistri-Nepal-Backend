@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from app.modules.booking.models import Booking
     from app.modules.models.models import Review
 
-    professional_skills = Table(
+professional_skills = Table(
     "professional_skills",
     Base.metadata,
     Column("professional_id", Integer, ForeignKey("professional_profiles.id", ondelete="CASCADE")),
