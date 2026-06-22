@@ -9,6 +9,7 @@ from app.core.db.database import Base
 if TYPE_CHECKING:
     from app.modules.auth.models import Role
     from app.modules.file.models import File 
+    from app.modules.professionals.models import ProfessionalProfile
 
 class User(Base, TimestampMixin):
     __tablename__ = "user"
@@ -35,6 +36,9 @@ class User(Base, TimestampMixin):
     # 🔥 Relationship (many users → one role)
     role: Mapped["Role"] = relationship(back_populates="users")
     files: Mapped[list["File"]] = relationship(back_populates="user")
+    professional_profile: Mapped[Optional["ProfessionalProfile"]] = relationship(
+        back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
     
     last_login: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True

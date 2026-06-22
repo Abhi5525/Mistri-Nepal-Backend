@@ -19,3 +19,6 @@ class Skill(Base):
         secondary="professional_skills",
         back_populates="skills"
     )
+    
+    def __repr__(self):
+        return f"<Skill(id={self.id}, name='{self.name}')>"

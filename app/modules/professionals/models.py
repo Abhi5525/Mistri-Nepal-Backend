@@ -8,30 +8,28 @@ from app.common.models.timestamp_mixin import TimestampMixin
 from app.core.db.database import Base
 
 if TYPE_CHECKING:
-    from app.modules.auth.models import User
+    from app.modules.users.models import User
     from app.modules.skills.models import Skill
-    from app.modules.booking.models import Booking
-    from app.modules.models.models import Review
+    from app.modules.professionals.documents_model import ProfessionalDocument
 
 professional_skills = Table(
     "professional_skills",
     Base.metadata,
-    Column("professional_id", Integer, ForeignKey("professional_profiles.id", ondelete="CASCADE")),
+    Column("professional_id", String(13), ForeignKey("professional_profiles.id", ondelete="CASCADE")),
     Column("skill_id", Integer, ForeignKey("skills.id", ondelete="CASCADE")),
 )
 
 class ProfessionalProfile(Base, TimestampMixin):
     __tablename__ = "professional_profiles"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[str] = mapped_column(String(13), primary_key=True, index=True)
 
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[str] = mapped_column(
         ForeignKey("user.id", ondelete="CASCADE"),
         unique=True,
-        nullable=False
+        nullable=False,
+        index=True
     )
-
-    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
 
     province: Mapped[str] = mapped_column(String(100), nullable=False)
     district: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -40,30 +38,35 @@ class ProfessionalProfile(Base, TimestampMixin):
 
     experience: Mapped[int] = mapped_column(Integer, default=0)
     about_yourself: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    rate: Mapped[float] = mapped_column(Float, default=0)
+    hourly_rate: Mapped[float] = mapped_column(Float, default=0)
 
     average_rating: Mapped[float] = mapped_column(Float, default=0.0)
     total_reviews: Mapped[int] = mapped_column(Integer, default=0)
 
-    profile_picture: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    citizenship_front: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-    citizenship_back: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
-
-    is_available: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_available: Mapped[bool] = mapped_column(Boolean, default=False)
 
     latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     verification_status: Mapped[str] = mapped_column(String(20), default="PENDING", nullable=False)
-
+    
     verified_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
-
-    verified_by: Mapped[Optional[int]] = mapped_column(ForeignKey("user.id"), nullable=True)
-
+    verified_by: Mapped[Optional[str]] = mapped_column(ForeignKey("user.id"), nullable=True)
     rejection_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Relationships
+    user: Mapped["User"] = relationship(back_populates="professional_profile")
     skills: Mapped[list["Skill"]] = relationship(
         secondary="professional_skills",
         back_populates="professionals"
     )
+    documents: Mapped[list["ProfessionalDocument"]] = relationship(
+        back_populates="professional",
+        cascade="all, delete-orphan"
+    )
+
+    def __repr__(self):
+        return (
+            f"<ProfessionalProfile(id={self.id}, user_id={self.user_id}, "
+            f"district='{self.district}', verification_status='{self.verification_status}')>"
+        )
