@@ -11,15 +11,16 @@ from app.modules.professional_applications.schemas import (
 from app.modules.professional_applications.service import (
     create_professional_application,
 )
+from app.core.security.authorization import authorize
 
 professional_application_router = APIRouter(
-    prefix="/professionalApplications",
+    prefix="/professionalApplication",
     tags=["Professional Applications"],
 )
 
 
 @professional_application_router.post(
-    "/",
+    "",
     response_model=ProfessionalApplicationResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Submit a professional application",
@@ -28,6 +29,7 @@ async def apply_professional(
     data: ProfessionalApplicationCreate,
     current_user: JwtPayload = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _=Depends(authorize),
 ):
     """
     Submit an application to become a professional.
