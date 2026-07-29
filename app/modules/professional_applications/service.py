@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
@@ -9,9 +9,13 @@ from app.modules.professional_applications.models import (
     ProfessionalApplication,
     ApplicationStatusEnum,
 )
-from app.modules.professional_applications.schemas import ProfessionalApplicationCreate
+from app.modules.professional_applications.schemas import (
+    ProfessionalApplicationCreate,
+    ProfessionalApplicationFilterQuery,
+)
 from app.modules.professionals.models import ProfessionalProfile
 from app.modules.skills.models import Skill
+from app.modules.users.models import User
 
 
 async def create_professional_application(
@@ -109,6 +113,7 @@ async def create_professional_application(
         query = (
             select(ProfessionalApplication)
             .options(
+                selectinload(ProfessionalApplication.user),
                 selectinload(ProfessionalApplication.profile_image),
                 selectinload(ProfessionalApplication.citizenship_front),
                 selectinload(ProfessionalApplication.citizenship_back),
@@ -128,4 +133,70 @@ async def create_professional_application(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to submit professional application",
+        )
+
+
+async def get_all_professional_applications(
+    db: AsyncSession,
+    filter_query: ProfessionalApplicationFilterQuery,
+) -> tuple[list[ProfessionalApplication], int]:
+    """
+    Retrieve paginated professional applications with optional filtering
+    by applicant name/email and status.
+    """
+    try:
+        query = (
+            select(ProfessionalApplication)
+            .join(ProfessionalApplication.user)
+            .options(
+                selectinload(ProfessionalApplication.user),
+                selectinload(ProfessionalApplication.profile_image),
+                selectinload(ProfessionalApplication.citizenship_front),
+                selectinload(ProfessionalApplication.citizenship_back),
+                selectinload(ProfessionalApplication.skills),
+            )
+        )
+
+        count_query = (
+            select(func.count(ProfessionalApplication.professional_application_id))
+            .join(ProfessionalApplication.user)
+        )
+
+        # Filter by applicant name or email if provided
+        if filter_query.name and filter_query.name.strip():
+            search_term = f"%{filter_query.name.strip()}%"
+            name_condition = or_(
+                User.full_name.ilike(search_term),
+                ProfessionalApplication.email.ilike(search_term),
+            )
+            query = query.where(name_condition)
+            count_query = count_query.where(name_condition)
+
+        # Filter by application status if provided
+        if filter_query.status:
+            status_condition = ProfessionalApplication.status == filter_query.status
+            query = query.where(status_condition)
+            count_query = count_query.where(status_condition)
+
+        # Execute total record count
+        count_result = await db.execute(count_query)
+        total_records = count_result.scalar_one()
+
+        # Apply ordering and pagination
+        query = (
+            query.order_by(ProfessionalApplication.created_at.desc())
+            .offset(filter_query.offset)
+            .limit(filter_query.size)
+        )
+
+        result = await db.execute(query)
+        applications = list(result.scalars().all())
+
+        return applications, total_records
+
+    except Exception as e:
+        print("Error in get_all_professional_applications:", str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch professional applications",
         )
