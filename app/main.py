@@ -9,6 +9,9 @@ from fastapi import status
 from app.core.app.app_health import app_health_router
 from app.modules.auth.router import auth_router
 from app.modules.file.router import file_router
+from app.modules.professional_applications.router import (
+    professional_application_router,
+)
 
 def startup_event():
     configure_cloudinary()
@@ -83,6 +86,7 @@ app.router.prefix = settings.API_VERSION_PREFIX
 app.include_router(app_health_router)
 app.include_router(auth_router)
 app.include_router(file_router)
+app.include_router(professional_application_router)
 if __name__ == "__main__":
     import uvicorn
 
