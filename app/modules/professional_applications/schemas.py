@@ -3,9 +3,11 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from app.common.pagination import PaginationQuery
 from app.modules.file.schemas import FileResponseSchema
 from app.modules.professional_applications.models import ApplicationStatusEnum
 from app.modules.skills.schemas import SkillResponse
+from app.modules.users.schemas import UserResponse
 
 
 class ProfessionalApplicationCreate(BaseModel):
@@ -43,6 +45,13 @@ class ProfessionalApplicationUpdateStatus(BaseModel):
     rejection_reason: Optional[str] = Field(None, description="Reason for rejection if status is REJECTED")
 
 
+class ProfessionalApplicationFilterQuery(PaginationQuery):
+    """Query parameters for filtering and paginating professional applications, extending PaginationQuery"""
+
+    name: Optional[str] = Field(None, description="Search by applicant full name or email")
+    status: Optional[ApplicationStatusEnum] = Field(None, description="Filter by application status (PENDING, APPROVED, REJECTED)")
+
+
 class ProfessionalApplicationResponse(BaseModel):
     """Response schema for professional application details"""
 
@@ -50,6 +59,8 @@ class ProfessionalApplicationResponse(BaseModel):
 
     professional_application_id: str = Field(..., description="Unique application ID")
     user_id: str = Field(..., description="ID of the applying user")
+
+    user: Optional[UserResponse] = None
 
     email: str
     province: str
