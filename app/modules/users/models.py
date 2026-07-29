@@ -38,7 +38,10 @@ class User(Base, TimestampMixin):
     role: Mapped["Role"] = relationship(back_populates="users")
     files: Mapped[list["File"]] = relationship(back_populates="user")
     professional_application: Mapped[Optional["ProfessionalApplication"]] = relationship(
-        back_populates="user", uselist=False
+        "ProfessionalApplication",
+        back_populates="user",
+        uselist=False,
+        foreign_keys="[ProfessionalApplication.user_id]",
     )
     professional_profile: Mapped[Optional["ProfessionalProfile"]] = relationship(
         back_populates="user", uselist=False

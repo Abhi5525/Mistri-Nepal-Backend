@@ -21,7 +21,7 @@ class ProfessionalApplication(Base, TimestampMixin):
     __tablename__ = "professional_applications"
 
     professional_application_id: Mapped[str] = mapped_column(
-        primary_key=True, index=True
+        String(13), primary_key=True, index=True
     )
 
     # 🔥 CRITICAL: Matches User.id type (String 13)
@@ -76,7 +76,9 @@ class ProfessionalApplication(Base, TimestampMixin):
 
     # --- Relationships ---
     user: Mapped["User"] = relationship(
-        back_populates="professional_application", foreign_keys=[user_id]
+        "User",
+        back_populates="professional_application",
+        foreign_keys="[ProfessionalApplication.user_id]",
     )
     profile_image: Mapped["File"] = relationship(foreign_keys=[profile_image_id])
     citizenship_front: Mapped["File"] = relationship(

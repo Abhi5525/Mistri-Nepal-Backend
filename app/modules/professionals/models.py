@@ -4,10 +4,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.common.models.timestamp_mixin import TimestampMixin
 from app.core.db.database import Base
 
+from app.modules.skills.models import Skill
+
 if TYPE_CHECKING:
     from app.modules.users.models import User
     from app.modules.file.models import File
-    from app.modules.skills.models import Skill
     # from app.modules.bookings.models import Booking
     # from app.modules.reviews.models import Review
 
