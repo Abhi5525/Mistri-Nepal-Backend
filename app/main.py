@@ -12,6 +12,7 @@ from app.modules.file.router import file_router
 from app.modules.professional_applications.router import (
     professional_application_router,
 )
+from app.modules.skills.router import skill_router
 
 def startup_event():
     configure_cloudinary()
@@ -87,6 +88,7 @@ app.include_router(app_health_router)
 app.include_router(auth_router)
 app.include_router(file_router)
 app.include_router(professional_application_router)
+app.include_router(skill_router)
 if __name__ == "__main__":
     import uvicorn
 
