@@ -38,6 +38,7 @@ class ProfessionalProfile(Base, TimestampMixin):
     )
     experience: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     about_yourself: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    other_skills: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     base_rate: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True, index=True)
     longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True, index=True)

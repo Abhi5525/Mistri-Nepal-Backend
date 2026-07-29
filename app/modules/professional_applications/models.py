@@ -1,10 +1,12 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional, TYPE_CHECKING
-from sqlalchemy import String, Integer, Float, Text, ForeignKey, Enum as SQLEnum
+from sqlalchemy import String, Integer, Float, Text, ForeignKey, Table, Column, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.common.models.timestamp_mixin import TimestampMixin
 from app.core.db.database import Base
+
+from app.modules.skills.models import Skill
 
 if TYPE_CHECKING:
     from app.modules.users.models import User
@@ -15,6 +17,24 @@ class ApplicationStatusEnum(str, Enum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+
+
+application_skills = Table(
+    "application_skills",
+    Base.metadata,
+    Column(
+        "professional_application_id",
+        String(13),
+        ForeignKey("professional_applications.professional_application_id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "skill_id",
+        Integer,
+        ForeignKey("skills.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
 
 
 class ProfessionalApplication(Base, TimestampMixin):
@@ -43,6 +63,7 @@ class ProfessionalApplication(Base, TimestampMixin):
     # --- Professional Details ---
     experience: Mapped[str] = mapped_column(String(100), nullable=False)
     about_yourself: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    other_skills: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     base_rate: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
 
     latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
@@ -85,3 +106,7 @@ class ProfessionalApplication(Base, TimestampMixin):
         foreign_keys=[citizenship_front_id]
     )
     citizenship_back: Mapped["File"] = relationship(foreign_keys=[citizenship_back_id])
+
+    skills: Mapped[list["Skill"]] = relationship(
+        secondary=application_skills,
+    )
