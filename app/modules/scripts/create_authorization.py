@@ -11,7 +11,13 @@ from app.core.utils.string_utils import StringUtils
 from app.core.db.database import AsyncSessionLocal
 # import models to ensure they're registered with SQLAlchemy
 from app.modules.auth.models import Authorization, Role
-from app.modules.users.models import User  # noqa: F401
+from app.modules.users.models import User
+from app.modules.file.models import File
+from app.modules.professional_applications.models import ProfessionalApplication  # noqa: F401
+from app.modules.professionals.models import ProfessionalProfile
+from app.modules.skills.models import Skill  # noqa: F401
+# from app.modules.bookings.models import Booking  # noqa: F401
+# from app.modules.reviews.models import Review  # noqa: F401
 
 # Define HTTP methods
 readOnlyMethods = ["GET"]
@@ -48,7 +54,7 @@ def getCustomerPermissions(role: Role) -> List[Authorization]:
             role, "/api/v1/loggedInUser", readOnlyMethods
         ),
         setAuthorizationPermissions(
-            role, "/api/v1/professionalApplication/submit", postMethod
+            role, "/api/v1/professionalApplication", postMethod
         ),
     ]
 
@@ -80,17 +86,17 @@ async def create_authorizations():
             if len(roles) != len(required_roles):
                 missing_roles = set(required_roles) - {r.role for r in roles}
                 raise Exception(
-                    f"❌ One or more roles not found: {', '.join(missing_roles)}"
+                    f"One or more roles not found: {', '.join(missing_roles)}"
                 )
 
-            print("✅ All roles verified successfully")
+            print("[SUCCESS] All roles verified successfully")
 
             # Find each role
             admin = next(r for r in roles if r.role == RoleEnum.ADMIN)
             customer = next(r for r in roles if r.role == RoleEnum.CUSTOMER)
             professional = next(r for r in roles if r.role == RoleEnum.PROFESSIONAL)
 
-            # ✅ Parallel permission creation (like Promise.all)
+            # Parallel permission creation
             from asyncio import gather
 
             authorizations_lists = await gather(
@@ -109,12 +115,12 @@ async def create_authorizations():
             ]
 
             await session.commit()
-            print("✅ Authorizations created successfully")
+            print("[SUCCESS] Authorizations created successfully")
             return all_authorizations
 
         except Exception as e:
             await session.rollback()
-            print(f"❌ Error while creating authorizations: {e}")
+            print(f"[ERROR] Error while creating authorizations: {e}")
             raise
 
 
