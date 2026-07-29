@@ -22,8 +22,7 @@ from app.modules.skills.models import Skill  # noqa: F401
 # Define HTTP methods
 readOnlyMethods = ["GET"]
 postMethod = ["POST"]
-updateMethods = [ "PUT", "PATCH"]
-deleteMethod = ["DELETE"]
+writeMethods = ["DELETE", "PUT", "PATCH"]
 
 
 def setAuthorizationPermissions(
@@ -45,6 +44,12 @@ def getAdminPermissions(role: Role) -> List[Authorization]:
         setAuthorizationPermissions(
             role, "/api/v1/users", readOnlyMethods
         ),
+        setAuthorizationPermissions(
+            role, "api/v1/skills", postMethod
+        ),
+        setAuthorizationPermissions(
+            role, "api/v1/skills/{skill_id}", writeMethods
+        )
     ]
 
 
@@ -68,7 +73,7 @@ def getProfessionalPermissions(role: Role) -> List[Authorization]:
             role, "/api/v1/professionalProfile", readOnlyMethods
         ),
        setAuthorizationPermissions(
-            role, "/api/v1/professionalProfile/update/me", updateMethods
+            role, "/api/v1/professionalProfile/update/me", writeMethods
         ),
     ]
 
