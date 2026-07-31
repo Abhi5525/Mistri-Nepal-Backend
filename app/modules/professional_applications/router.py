@@ -12,10 +12,12 @@ from app.modules.professional_applications.schemas import (
     ProfessionalApplicationCreate,
     ProfessionalApplicationFilterQuery,
     ProfessionalApplicationResponse,
+    ProfessionalApplicationUpdateStatus,
 )
 from app.modules.professional_applications.service import (
     create_professional_application,
     get_all_professional_applications,
+    respond_to_professional_application,
 )
 
 professional_application_router = APIRouter(
@@ -77,4 +79,31 @@ async def get_all_applications(
             pageSize=filter_query.size,
             totalRecords=total_records,
         ),
+    )
+
+
+@professional_application_router.patch(
+    "/{application_id}/status",
+    response_model=ProfessionalApplicationResponse,
+    summary="Respond to a professional application (Admin Only)",
+)
+async def respond_application_status(
+    application_id: str,
+    data: ProfessionalApplicationUpdateStatus,
+    current_user: JwtPayload = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _=Depends(authorize),
+):
+    """
+    Respond to a PENDING professional application by ID (Admin only).
+    - Json body: status ('APPROVED' or 'REJECTED') and rejection_reason/description/reason.
+    - If APPROVED: Creates ProfessionalProfile for the user and promotes user role to PROFESSIONAL.
+    - If REJECTED: Updates application status with rejection reason.
+    - Ensures only PENDING applications can be responded to.
+    """
+    return await respond_to_professional_application(
+        db=db,
+        application_id=application_id,
+        admin_user_id=current_user.sub,
+        data=data,
     )
