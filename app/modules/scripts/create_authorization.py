@@ -53,6 +53,9 @@ def getAdminPermissions(role: Role) -> List[Authorization]:
         setAuthorizationPermissions(
             role, "/api/v1/professionalApplication", readOnlyMethods
         ),
+        setAuthorizationPermissions(
+            role, "/api/v1/professionalApplication/{application_id}/status", writeMethods
+        ),
     ]
 
 
