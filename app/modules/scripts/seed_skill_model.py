@@ -8,10 +8,9 @@ from app.modules.users.models import User
 from app.modules.file.models import File
 from app.modules.professional_applications.models import ProfessionalApplication  # noqa: F401
 from app.modules.professionals.models import ProfessionalProfile
-from app.modules.skills.models import Skill  # noqa: F401
+from app.modules.skills.models import Skill
 
 from app.core.db.database import AsyncSessionLocal
-from app.modules.skills.models import Skill
 
 DEFAULT_SKILLS = [
     # 🏠 Core Home Repair
@@ -69,18 +68,22 @@ DEFAULT_SKILLS = [
 
 
 async def seed_skills(db: AsyncSession):
-    added_count = 0
-    for name in DEFAULT_SKILLS:
-        result = await db.execute(select(Skill).where(Skill.name == name))
-        exists = result.scalar_one_or_none()
+    # Fetch existing skill names using IN clause
+    result = await db.execute(select(Skill.name).where(Skill.name.in_(DEFAULT_SKILLS)))
+    existing_skill_names = set(result.scalars().all())
 
-        if not exists:
-            db.add(Skill(name=name))
-            added_count += 1
+    # Determine skills to add based on existing skills
+    if not existing_skill_names:
+        skills_to_add = DEFAULT_SKILLS
+    else:
+        skills_to_add = [name for name in DEFAULT_SKILLS if name not in existing_skill_names]
 
-    if added_count > 0:
+    # Store skills in database
+    if skills_to_add:
+        new_skill_objects = [Skill(name=name) for name in skills_to_add]
+        db.add_all(new_skill_objects)
         await db.commit()
-        print(f"[SUCCESS] Seeded {added_count} new skills successfully.")
+        print(f"[SUCCESS] Seeded {len(skills_to_add)} new skills successfully.")
     else:
         print("[INFO] All default skills already exist in database.")
 
