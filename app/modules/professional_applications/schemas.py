@@ -37,12 +37,12 @@ class ProfessionalApplicationCreate(BaseModel):
 
 
 class ProfessionalApplicationUpdateStatus(BaseModel):
-    """Schema for updating application workflow status (Admin review)"""
+    """Schema for responding/updating application status (Admin review)"""
 
     model_config = ConfigDict(from_attributes=True)
 
-    status: ApplicationStatusEnum = Field(..., description="Application workflow status")
-    rejection_reason: Optional[str] = Field(None, description="Reason for rejection if status is REJECTED")
+    status: ApplicationStatusEnum = Field(..., description="Target status: APPROVED or REJECTED")
+    reason: Optional[str] = Field(None, description="Reason for rejection if status is REJECTED")
 
 
 class ProfessionalApplicationFilterQuery(PaginationQuery):
