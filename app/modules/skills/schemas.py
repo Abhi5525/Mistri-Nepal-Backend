@@ -1,6 +1,6 @@
 from typing import Optional
-import re
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict
+from app.common.pagination import PaginationQuery, PaginatedResponse
 
 
 class SkillResponse(BaseModel):
@@ -24,20 +24,14 @@ class SkillCreate(BaseModel):
 
 
 class SkillUpdate(BaseModel):
-    """Skill update model"""
-    name: Optional[str] = Field(None, min_length=2, max_length=100)
-    
-    @field_validator("name", mode="before")
-    @classmethod
-    def validate_name(cls, v):
-        if v and not re.match(r'^[a-zA-Z\s\-]+$', v):
-            raise ValueError("Skill name must contain only letters, spaces, and hyphens")
-        return v.strip() if v else None
+    name: Optional[str] = None
 
 
-class SkillSearchResponse(BaseModel):
-    """Skill search response"""
-    model_config = ConfigDict(from_attributes=True)
-    
-    results: list[SkillResponse]
-    total: int
+class SkillFilterQuery(PaginationQuery):
+    """Query filter parameters for skills, extending global PaginationQuery"""
+
+    name: Optional[str] = None
+
+
+# Alias for type annotation if needed
+PaginatedSkillResponse = PaginatedResponse[list[SkillResponse]]

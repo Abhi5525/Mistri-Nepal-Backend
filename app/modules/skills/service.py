@@ -1,164 +1,158 @@
-from sqlalchemy import select
+from typing import Optional, Tuple, List
+from fastapi import HTTPException, status
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException
 
 from app.modules.skills.models import Skill
+from app.modules.skills.schemas import SkillCreate, SkillUpdate, SkillFilterQuery
 
 
-# ✅ CREATE SKILL
-async def create_skill(
-    db: AsyncSession,
-    name: str,
-) -> Skill:
-    """Create a new skill"""
+async def create_skill(db: AsyncSession, data: SkillCreate) -> Skill:
+    """
+    Creates a new skill after validating that a skill with the same name doesn't already exist.
+    """
     try:
-        # Check if skill already exists
-        result = await db.execute(
-            select(Skill).where(Skill.name.ilike(name))
+        skill_name = data.name.strip()
+        existing_skill = await db.execute(
+            select(Skill).where(Skill.name.ilike(skill_name))
         )
-        existing = result.scalar_one_or_none()
-        
-        if existing:
+        if existing_skill.scalar_one_or_none():
             raise HTTPException(
-                status_code=400,
-                detail=f"Skill '{name}' already exists"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Skill with name '{skill_name}' already exists",
             )
-        
-        new_skill = Skill(name=name.strip())
+
+        new_skill = Skill(name=skill_name)
         db.add(new_skill)
         await db.commit()
         await db.refresh(new_skill)
-        
         return new_skill
-    
     except HTTPException as http_exc:
         await db.rollback()
         raise http_exc
     except Exception as e:
         await db.rollback()
         print("Error in create_skill:", str(e))
-        raise HTTPException(status_code=500, detail="Failed to create skill")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create skill",
+        )
 
 
-# ✅ GET ALL SKILLS
-async def get_all_skills(db: AsyncSession) -> list[Skill]:
-    """Get all skills"""
+async def get_all_skills(
+    db: AsyncSession,
+    filter_query: SkillFilterQuery,
+) -> Tuple[List[Skill], int]:
+    """
+    Retrieves skills with optional name search filtering and pagination.
+    Returns a tuple of (skills, total_records).
+    """
     try:
-        result = await db.execute(select(Skill).order_by(Skill.name))
-        return result.scalars().all()
+        base_query = select(Skill)
+
+        if filter_query.name and filter_query.name.strip():
+            search_pattern = f"%{filter_query.name.strip()}%"
+            base_query = base_query.where(Skill.name.ilike(search_pattern))
+
+        # Count total records matching the filter
+        count_query = select(func.count()).select_from(base_query.subquery())
+        total_result = await db.execute(count_query)
+        total_records = total_result.scalar_one()
+
+        # Apply pagination (using filter_query.offset and filter_query.size)
+        paginated_query = (
+            base_query.order_by(Skill.id.asc())
+            .offset(filter_query.offset)
+            .limit(filter_query.size)
+        )
+
+        result = await db.execute(paginated_query)
+        skills = list(result.scalars().all())
+
+        return skills, total_records
     except Exception as e:
         print("Error in get_all_skills:", str(e))
-        raise HTTPException(status_code=500, detail="Failed to fetch skills")
-
-
-# ✅ GET SKILL BY ID
-async def get_skill_by_id(db: AsyncSession, skill_id: int) -> Skill:
-    """Get skill by ID"""
-    try:
-        result = await db.execute(
-            select(Skill).where(Skill.id == skill_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch skills",
         )
+
+
+async def get_skill_by_id(db: AsyncSession, skill_id: int) -> Optional[Skill]:
+    """
+    Retrieves a skill by its ID.
+    """
+    try:
+        result = await db.execute(select(Skill).where(Skill.id == skill_id))
         return result.scalar_one_or_none()
     except Exception as e:
         print("Error in get_skill_by_id:", str(e))
-        raise HTTPException(status_code=500, detail="Failed to fetch skill")
-
-
-# ✅ UPDATE SKILL
-async def update_skill(
-    db: AsyncSession,
-    skill_id: int,
-    name: str = None,
-) -> Skill:
-    """Update a skill"""
-    try:
-        result = await db.execute(
-            select(Skill).where(Skill.id == skill_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch skill",
         )
-        skill = result.scalar_one_or_none()
-        
+
+
+async def update_skill(
+    db: AsyncSession, skill_id: int, data: SkillUpdate
+) -> Optional[Skill]:
+    """
+    Updates an existing skill's details.
+    """
+    try:
+        skill = await get_skill_by_id(db=db, skill_id=skill_id)
         if not skill:
-            raise HTTPException(status_code=404, detail="Skill not found")
-        
-        if name:
-            # Check if new name already exists
+            return None
+
+        if data.name is not None and data.name.strip() != "":
+            new_name = data.name.strip()
             existing = await db.execute(
                 select(Skill).where(
-                    (Skill.name.ilike(name)) & (Skill.id != skill_id)
+                    Skill.name.ilike(new_name),
+                    Skill.id != skill_id,
                 )
             )
             if existing.scalar_one_or_none():
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Skill '{name}' already exists"
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Skill with name '{new_name}' already exists",
                 )
-            skill.name = name.strip()
-        
-        db.add(skill)
+            skill.name = new_name
+
         await db.commit()
         await db.refresh(skill)
-        
         return skill
-    
     except HTTPException as http_exc:
         await db.rollback()
         raise http_exc
     except Exception as e:
         await db.rollback()
         print("Error in update_skill:", str(e))
-        raise HTTPException(status_code=500, detail="Failed to update skill")
-
-
-# ✅ DELETE SKILL
-async def delete_skill(db: AsyncSession, skill_id: int) -> bool:
-    """Delete a skill"""
-    try:
-        result = await db.execute(
-            select(Skill).where(Skill.id == skill_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update skill",
         )
-        skill = result.scalar_one_or_none()
-        
+
+
+async def delete_skill(db: AsyncSession, skill_id: int) -> bool:
+    """
+    Deletes a skill by its ID.
+    """
+    try:
+        skill = await get_skill_by_id(db=db, skill_id=skill_id)
         if not skill:
-            raise HTTPException(status_code=404, detail="Skill not found")
-        
-        # Check if skill is being used by any professionals
-        if skill.professionals:
-            raise HTTPException(
-                status_code=400,
-                detail="Cannot delete skill that is assigned to professionals. Unassign it first."
-            )
-        
+            return False
+
         await db.delete(skill)
         await db.commit()
-        
         return True
-    
     except HTTPException as http_exc:
         await db.rollback()
         raise http_exc
     except Exception as e:
         await db.rollback()
         print("Error in delete_skill:", str(e))
-        raise HTTPException(status_code=500, detail="Failed to delete skill")
-
-
-# ✅ SEARCH SKILLS
-async def search_skills(
-    db: AsyncSession,
-    query: str,
-    skip: int = 0,
-    limit: int = 10
-) -> list[Skill]:
-    """Search skills by name"""
-    try:
-        result = await db.execute(
-            select(Skill)
-            .where(Skill.name.ilike(f"%{query}%"))
-            .order_by(Skill.name)
-            .offset(skip)
-            .limit(limit)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete skill",
         )
-        return result.scalars().all()
-    except Exception as e:
-        print("Error in search_skills:", str(e))
-        raise HTTPException(status_code=500, detail="Failed to search skills")

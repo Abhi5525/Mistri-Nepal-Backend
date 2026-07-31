@@ -7,6 +7,9 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.modules.auth.models import Role, Authorization
 from app.modules.file.models import File
 from app.modules.users.models import User
+from app.modules.professional_applications.models import ProfessionalApplication
+from app.modules.professionals.models import ProfessionalProfile, professional_skills
+from app.modules.skills.models import Skill
 from alembic import context
 
 # Import your Base and settings
