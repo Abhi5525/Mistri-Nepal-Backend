@@ -36,7 +36,13 @@ class ProfessionalProfile(Base, TimestampMixin):
     profile_image_id: Mapped[Optional[str]] = mapped_column(
         String(13), ForeignKey("file.file_id", ondelete="SET NULL"), nullable=True
     )
-    experience: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    citizenship_front_id: Mapped[str] = mapped_column(
+        String(13), ForeignKey("file.file_id", ondelete="RESTRICT"), nullable=False
+    )
+    citizenship_back_id: Mapped[str] = mapped_column(
+        String(13), ForeignKey("file.file_id", ondelete="RESTRICT"), nullable=False
+    )
+    experience: Mapped[str] = mapped_column(String(100), nullable=False)
     about_yourself: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     other_skills: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     base_rate: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
@@ -52,6 +58,8 @@ class ProfessionalProfile(Base, TimestampMixin):
     # --- Relationships ---
     user: Mapped["User"] = relationship(back_populates="professional_profile")
     profile_image: Mapped[Optional["File"]] = relationship(foreign_keys=[profile_image_id])
+    citizenship_front: Mapped["File"] = relationship(foreign_keys=[citizenship_front_id])
+    citizenship_back: Mapped["File"] = relationship(foreign_keys=[citizenship_back_id])
     
     skills: Mapped[list["Skill"]] = relationship(
         secondary=professional_skills,
