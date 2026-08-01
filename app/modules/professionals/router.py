@@ -1,27 +1,25 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.common.enum.role_enum import RoleEnum
 from app.core.db.database import get_db
 from app.core.security.security import get_current_user
 from app.modules.auth.schemas import JwtPayload
-from app.modules.professionals import service
+from app.modules.professionals import documents_service, service
+from app.modules.professionals.documents_schemas import (
+    DocumentListResponse,
+    DocumentVerificationRequest,
+    ProfessionalDocumentResponse,
+    ProfessionalDocumentUploadResponse,
+)
 from app.modules.professionals.schemas import (
     ProfessionalProfileResponse,
+    ProfessionalProfileUpdate,
     ProfessionalRegistrationRequest,
     ProfessionalRegistrationSuccessResponse,
-    ProfessionalProfileUpdate,
-    ProfessionalDetailResponse,
     ProfessionalVerificationRequest,
     SkillAssignmentRequest,
 )
-from app.modules.professionals import documents_service
-from app.modules.professionals.documents_schemas import (
-    ProfessionalDocumentResponse,
-    ProfessionalDocumentUploadResponse,
-    DocumentVerificationRequest,
-    DocumentListResponse,
-)
-from app.common.enum.role_enum import RoleEnum
 
 prof_router = APIRouter(prefix="/professionals", tags=["Professional"])
 
@@ -240,7 +238,7 @@ async def get_pending_professionals(
 @prof_router.get("/search/location", response_model=list[ProfessionalProfileResponse])
 async def search_by_location(
     district: str,
-    skill_id: int = None,
+    skill_id: int | None = None,
     skip: int = 0,
     limit: int = 10,
     db: AsyncSession = Depends(get_db),
