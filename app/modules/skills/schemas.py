@@ -1,5 +1,6 @@
+import re
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.common.pagination import PaginationQuery, PaginatedResponse
 
 
