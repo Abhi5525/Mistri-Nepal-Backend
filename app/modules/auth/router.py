@@ -1,25 +1,42 @@
-from fastapi import APIRouter, HTTPException
-from fastapi.params import Depends
-from app.core.db.database import get_db
+from fastapi import APIRouter, Depends, HTTPException
+
 from app.modules.auth import service
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.modules.auth.schemas import LoginData, UserLogin, UserRegistrationSuccessResponse, LoginResponse
-from app.modules.auth.schemas import UserRegister
+from app.modules.auth.schemas import (
+    LoginData,
+    LoginResponse,
+    UserLogin,
+    UserRegister,
+    UserRegistrationSuccessResponse,
+)
+from app.modules.users.dependencies import get_user_service
 from app.modules.users.schemas import UserResponse
+from app.modules.users.service import UserService
 
 auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
 @auth_router.post("/register", response_model=UserRegistrationSuccessResponse)
-async def register(data: UserRegister,db: AsyncSession=Depends(get_db),) -> UserRegistrationSuccessResponse:
-    final_result: UserResponse= await service.register_user(db=db, user_data=data) 
+async def register(
+    data: UserRegister,
+    user_service: UserService = Depends(get_user_service),
+) -> UserRegistrationSuccessResponse:
+    final_result: UserResponse = await service.register_user(
+        user_data=data,
+        user_service=user_service,
+    )
     return UserRegistrationSuccessResponse(data=final_result)
 
+
 @auth_router.post("/login", response_model=LoginResponse)
-async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
+async def login(
+    data: UserLogin,
+    user_service: UserService = Depends(get_user_service),
+):
     try:
         access, refresh, user = await service.login_user(
-            db,
-            data.phone_number,
-            data.password,
+            phone_number=data.phone_number,
+            password=data.password,
+            user_service=user_service,
         )
 
         return LoginResponse(
@@ -30,5 +47,6 @@ async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
         raise http_exc
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail="Internal server error" + e.__str__()
+            status_code=500, detail="Internal server error " + str(e)
         )
+
