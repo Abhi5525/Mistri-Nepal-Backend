@@ -1,19 +1,20 @@
 import math
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db.database import get_db
 from app.common.pagination import PaginationMeta
-from app.modules.skills import service
+from app.core.db.database import get_db
+from app.core.security.authorization import authorize
 from app.core.security.security import get_current_user
 from app.modules.auth.schemas import JwtPayload
-from app.core.security.authorization import authorize
+from app.modules.skills import service
 from app.modules.skills.schemas import (
-    SkillResponse,
-    SkillCreate,
-    SkillUpdate,
-    SkillFilterQuery,
     PaginatedSkillResponse,
+    SkillCreate,
+    SkillFilterQuery,
+    SkillResponse,
+    SkillUpdate,
 )
 
 skill_router = APIRouter(prefix="/skills", tags=["Skills"])
@@ -25,12 +26,8 @@ async def create_skill(
     data: SkillCreate,
     db: AsyncSession = Depends(get_db),
     user: JwtPayload = Depends(get_current_user),
-    _= Depends(authorize)
+    _=Depends(authorize),
 ):
-    """Create a new skill (admin only)"""
-    if current_user.role != RoleEnum.ADMIN:
-        raise HTTPException(status_code=403, detail="Only admins can create skills")
-    
     result = await service.create_skill(db=db, name=data.name)
     return result
 
@@ -38,12 +35,15 @@ async def create_skill(
 # ✅ GET ALL SKILLS (WITH PAGINATION AND NAME SEARCH)
 @skill_router.get("", response_model=PaginatedSkillResponse)
 async def get_all_skills(
-    filter_query: SkillFilterQuery = Depends(),
-    db: AsyncSession = Depends(get_db)
+    filter_query: SkillFilterQuery = Depends(), db: AsyncSession = Depends(get_db)
 ):
-    skills, total_records = await service.get_all_skills(db=db, filter_query=filter_query)
+    skills, total_records = await service.get_all_skills(
+        db=db, filter_query=filter_query
+    )
 
-    total_pages = math.ceil(total_records / filter_query.size) if total_records > 0 else 0
+    total_pages = (
+        math.ceil(total_records / filter_query.size) if total_records > 0 else 0
+    )
 
     return PaginatedSkillResponse(
         message="Skills retrieved successfully",
@@ -64,44 +64,16 @@ async def update_skill(
     data: SkillUpdate,
     db: AsyncSession = Depends(get_db),
     user: JwtPayload = Depends(get_current_user),
-    _= Depends(authorize)
+    _=Depends(authorize),
 ):
     """Get skill by ID"""
     result = await service.get_skill_by_id(db=db, skill_id=skill_id)
-    
+
     if not result:
         raise HTTPException(status_code=404, detail="Skill not found")
-    
+
     return result
 
-
-# ✅ SEARCH SKILLS
-@skill_router.get("/search/{query}", response_model=list[SkillResponse])
-async def search_skills(
-    query: str,
-    skip: int = 0,
-    limit: int = 10,
-    db: AsyncSession = Depends(get_db)
-):
-    """Search skills by name"""
-    return await service.search_skills(db=db, query=query, skip=skip, limit=limit)
-
-
-# ✅ UPDATE SKILL (ADMIN ONLY)
-@skill_router.put("/{skill_id}", response_model=SkillResponse)
-async def update_skill(
-    skill_id: int,
-    data: SkillUpdate,
-    current_user: JwtPayload = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db)
-):
-    """Update a skill (admin only)"""
-    if current_user.role != RoleEnum.ADMIN:
-        raise HTTPException(status_code=403, detail="Only admins can update skills")
-    
-    result = await service.update_skill(db=db, skill_id=skill_id, name=data.name)
-    
-    return result
 
 
 # ✅ DELETE SKILL (ADMIN ONLY)
@@ -110,12 +82,9 @@ async def delete_skill(
     skill_id: int,
     db: AsyncSession = Depends(get_db),
     user: JwtPayload = Depends(get_current_user),
-    _= Depends(authorize)
+    _=Depends(authorize),
 ):
     """Delete a skill (admin only)"""
-    if current_user.role != RoleEnum.ADMIN:
-        raise HTTPException(status_code=403, detail="Only admins can delete skills")
-    
     success = await service.delete_skill(db=db, skill_id=skill_id)
-    
+
     return {"message": "Skill deleted successfully"}
