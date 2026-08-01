@@ -1,16 +1,17 @@
 from datetime import datetime, timezone
-from sqlalchemy import func, or_, select
-from sqlalchemy.orm import selectinload
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from fastapi import HTTPException, status
+from sqlalchemy import func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.common.enum.role_enum import RoleEnum
 from app.core.utils.string_utils import StringUtils
 from app.modules.auth.models import Role
 from app.modules.file.models import File
 from app.modules.professional_applications.models import (
-    ProfessionalApplication,
     ApplicationStatusEnum,
+    ProfessionalApplication,
 )
 from app.modules.professional_applications.schemas import (
     ProfessionalApplicationCreate,
@@ -44,7 +45,9 @@ async def create_professional_application(
 
         # 2. Check for duplicate application
         existing_app = await db.execute(
-            select(ProfessionalApplication).where(ProfessionalApplication.user_id == user_id)
+            select(ProfessionalApplication).where(
+                ProfessionalApplication.user_id == user_id
+            )
         )
         if existing_app.scalar_one_or_none():
             raise HTTPException(
@@ -58,9 +61,7 @@ async def create_professional_application(
             data.citizenship_front_id,
             data.citizenship_back_id,
         ]
-        files_result = await db.execute(
-            select(File).where(File.file_id.in_(file_ids))
-        )
+        files_result = await db.execute(select(File).where(File.file_id.in_(file_ids)))
         found_files = {file.file_id for file in files_result.scalars().all()}
 
         missing_files = set(file_ids) - found_files
@@ -123,7 +124,9 @@ async def create_professional_application(
                 selectinload(ProfessionalApplication.citizenship_back),
                 selectinload(ProfessionalApplication.skills),
             )
-            .where(ProfessionalApplication.professional_application_id == application_id)
+            .where(
+                ProfessionalApplication.professional_application_id == application_id
+            )
         )
         result = await db.execute(query)
         return result.scalar_one()
@@ -161,10 +164,9 @@ async def get_all_professional_applications(
             )
         )
 
-        count_query = (
-            select(func.count(ProfessionalApplication.professional_application_id))
-            .join(ProfessionalApplication.user)
-        )
+        count_query = select(
+            func.count(ProfessionalApplication.professional_application_id)
+        ).join(ProfessionalApplication.user)
 
         # Filter by applicant name or email if provided
         if filter_query.name and filter_query.name.strip():
@@ -229,7 +231,9 @@ async def respond_to_professional_application(
                 selectinload(ProfessionalApplication.citizenship_back),
                 selectinload(ProfessionalApplication.skills),
             )
-            .where(ProfessionalApplication.professional_application_id == application_id)
+            .where(
+                ProfessionalApplication.professional_application_id == application_id
+            )
         )
         result = await db.execute(query)
         application = result.scalar_one_or_none()
@@ -277,7 +281,9 @@ async def respond_to_professional_application(
         if data.status == ApplicationStatusEnum.APPROVED:
             # Check if professional profile already exists
             existing_profile_res = await db.execute(
-                select(ProfessionalProfile).where(ProfessionalProfile.user_id == application.user_id)
+                select(ProfessionalProfile).where(
+                    ProfessionalProfile.user_id == application.user_id
+                )
             )
             if existing_profile_res.scalar_one_or_none():
                 raise HTTPException(
@@ -337,4 +343,39 @@ async def respond_to_professional_application(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to process application response",
+        )
+
+
+async def get_user_professional_application(
+    db: AsyncSession,
+    user_id: str,
+) -> ProfessionalApplication:
+    """
+    Fetch the professional application belonging to the given user_id.
+    """
+    try:
+        query = (
+            select(ProfessionalApplication)
+            .options(
+                selectinload(ProfessionalApplication.user),
+                selectinload(ProfessionalApplication.profile_image),
+                selectinload(ProfessionalApplication.citizenship_front),
+                selectinload(ProfessionalApplication.citizenship_back),
+                selectinload(ProfessionalApplication.skills),
+            )
+            .where(ProfessionalApplication.user_id == user_id)
+        )
+        result = await db.execute(query)
+        user_pro_app = result.scalar_one_or_none()
+        if not user_pro_app:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Professional application not found",
+            )
+        return user_pro_app
+    except Exception as e:
+        print("Error in get_user_professional_application:", str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch user professional application",
         )

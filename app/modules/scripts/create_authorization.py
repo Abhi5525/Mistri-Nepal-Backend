@@ -26,7 +26,7 @@ writeMethods = ["DELETE", "PUT", "PATCH"]
 
 
 def setAuthorizationPermissions(
-    role: Role, path: str, methods: List[str]
+    role: Role, path: str, methods: list[str]
 ) -> Authorization:
     auth = Authorization()
     auth.id = StringUtils.randomAlphaNumeric(8)
@@ -36,7 +36,7 @@ def setAuthorizationPermissions(
     return auth
 
 
-def getAdminPermissions(role: Role) -> List[Authorization]:
+def getAdminPermissions(role: Role) -> list[Authorization]:
     return [
         setAuthorizationPermissions(
             role, "/api/v1/adminDashboard", readOnlyMethods 
@@ -59,7 +59,7 @@ def getAdminPermissions(role: Role) -> List[Authorization]:
     ]
 
 
-def getCustomerPermissions(role: Role) -> List[Authorization]:
+def getCustomerPermissions(role: Role) -> list[Authorization]:
     return [
        setAuthorizationPermissions(
             role, "/api/v1/loggedInUser", readOnlyMethods
@@ -67,10 +67,13 @@ def getCustomerPermissions(role: Role) -> List[Authorization]:
         setAuthorizationPermissions(
             role, "/api/v1/professionalApplication", postMethod
         ),
+        setAuthorizationPermissions(
+            role, "/api/v1/professionalApplication/me", readOnlyMethods
+        ),
     ]
 
 
-def getProfessionalPermissions(role: Role) -> List[Authorization]:
+def getProfessionalPermissions(role: Role) -> list[Authorization]:
     return [
        setAuthorizationPermissions(
             role, "/api/v1/loggedInUser", readOnlyMethods
@@ -80,6 +83,9 @@ def getProfessionalPermissions(role: Role) -> List[Authorization]:
         ),
        setAuthorizationPermissions(
             role, "/api/v1/professionalProfile/update/me", writeMethods
+        ),
+        setAuthorizationPermissions(
+            role, "/api/v1/professionalApplication/me", readOnlyMethods
         ),
     ]
 

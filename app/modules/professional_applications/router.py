@@ -1,8 +1,8 @@
 import math
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.enum.role_enum import RoleEnum
 from app.common.pagination import PaginatedResponse, PaginationMeta
 from app.core.db.database import get_db
 from app.core.security.authorization import authorize
@@ -17,6 +17,7 @@ from app.modules.professional_applications.schemas import (
 from app.modules.professional_applications.service import (
     create_professional_application,
     get_all_professional_applications,
+    get_user_professional_application,
     respond_to_professional_application,
 )
 
@@ -50,6 +51,26 @@ async def apply_professional(
 
 
 @professional_application_router.get(
+    "/me",
+    response_model=ProfessionalApplicationResponse,
+    summary="Get professional application of logged-in user",
+)
+async def get_my_application(
+    current_user: JwtPayload = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    _=Depends(authorize),
+):
+    """
+    Fetch the professional application details submitted by the currently logged-in user.
+    """
+    application = await get_user_professional_application(
+        db=db,
+        user_id=current_user.sub,
+    )
+    return application
+
+
+@professional_application_router.get(
     "",
     response_model=PaginatedResponse[list[ProfessionalApplicationResponse]],
     summary="Get all professional applications (Admin Only)",
@@ -68,7 +89,9 @@ async def get_all_applications(
         db=db, filter_query=filter_query
     )
 
-    total_pages = math.ceil(total_records / filter_query.size) if total_records > 0 else 0
+    total_pages = (
+        math.ceil(total_records / filter_query.size) if total_records > 0 else 0
+    )
 
     return PaginatedResponse[list[ProfessionalApplicationResponse]](
         message="Professional applications retrieved successfully",
