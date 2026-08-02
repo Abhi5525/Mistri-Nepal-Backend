@@ -6,12 +6,6 @@ from app.core.db.database import get_db
 from app.core.security.security import get_current_user
 from app.modules.auth.schemas import JwtPayload
 from app.modules.professionals import documents_service, service
-from app.modules.professionals.documents_schemas import (
-    DocumentListResponse,
-    DocumentVerificationRequest,
-    ProfessionalDocumentResponse,
-    ProfessionalDocumentUploadResponse,
-)
 from app.modules.professionals.schemas import (
     ProfessionalProfileResponse,
     ProfessionalProfileUpdate,
@@ -95,7 +89,7 @@ async def update_my_profile(
     # Update with provided fields
     result = await service.update_professional_profile(
         db=db,
-        profile_id=profile.id,
+        profile_id=profile.professional_profile_id,
         **data.model_dump(exclude_unset=True)
     )
     
@@ -254,101 +248,3 @@ async def search_by_location(
     
     return result
 
-
-# ✅ UPLOAD PROFESSIONAL DOCUMENT
-@prof_router.post("/{profile_id}/documents", response_model=ProfessionalDocumentUploadResponse)
-async def upload_document(
-    profile_id: str,
-    file: UploadFile = File(...),
-    document_type: str = "CERTIFICATE",
-    current_user: JwtPayload = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Upload a document for professional profile"""
-    result = await documents_service.upload_professional_document(
-        db=db,
-        professional_id=profile_id,
-        file=file,
-        document_type=document_type,
-        user_id=current_user.sub,
-    )
-    
-    return ProfessionalDocumentUploadResponse(data=result)
-
-
-# ✅ GET PROFESSIONAL DOCUMENTS
-@prof_router.get("/{profile_id}/documents", response_model=DocumentListResponse)
-async def get_documents(
-    profile_id: str,
-    db: AsyncSession = Depends(get_db),
-):
-    """Get all documents for a professional"""
-    documents = await documents_service.get_professional_documents(
-        db=db,
-        professional_id=profile_id,
-    )
-    
-    return DocumentListResponse(documents=documents, total=len(documents))
-
-
-# ✅ DELETE PROFESSIONAL DOCUMENT
-@prof_router.delete("/{profile_id}/documents/{doc_id}")
-async def delete_document(
-    profile_id: str,
-    doc_id: str,
-    current_user: JwtPayload = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Delete a professional document"""
-    await documents_service.delete_professional_document(
-        db=db,
-        doc_id=doc_id,
-        professional_id=profile_id,
-        user_id=current_user.sub,
-    )
-    
-    return {"message": "Document deleted successfully"}
-
-
-# ✅ VERIFY DOCUMENT (ADMIN)
-@prof_router.patch("/{profile_id}/documents/{doc_id}/verify", response_model=ProfessionalDocumentResponse)
-async def verify_document(
-    profile_id: str,
-    doc_id: str,
-    data: DocumentVerificationRequest,
-    current_user: JwtPayload = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Verify or reject a professional document (admin only)"""
-    if current_user.role != RoleEnum.ADMIN:
-        raise HTTPException(status_code=403, detail="Only admins can verify documents")
-    
-    result = await documents_service.verify_professional_document(
-        db=db,
-        doc_id=doc_id,
-        admin_id=current_user.sub,
-        verified=data.verified,
-    )
-    
-    return result
-
-
-# ✅ GET UNVERIFIED DOCUMENTS (ADMIN)
-@prof_router.get("/admin/documents/unverified", response_model=DocumentListResponse)
-async def get_unverified_documents(
-    skip: int = 0,
-    limit: int = 10,
-    current_user: JwtPayload = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Get all unverified documents for admin review"""
-    if current_user.role != RoleEnum.ADMIN:
-        raise HTTPException(status_code=403, detail="Only admins can view unverified documents")
-    
-    documents = await documents_service.get_unverified_documents(
-        db=db,
-        skip=skip,
-        limit=limit,
-    )
-    
-    return DocumentListResponse(documents=documents, total=len(documents))
