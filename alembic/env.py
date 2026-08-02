@@ -10,8 +10,24 @@ from app.modules.users.models import User
 from app.modules.professional_applications.models import ProfessionalApplication
 from app.modules.professionals.models import ProfessionalProfile, professional_skills
 from app.modules.skills.models import Skill
+from app.modules.booking.models import Booking
 from alembic import context
 
+# Import your custom type at the top of env.py
+from app.core.pydantic_middleware.custom_typedecorator import PydanticType
+
+def render_custom_types(type_, obj, autogen_context):
+    """
+    Tells Alembic how to render custom TypeDecorators in migration files.
+    """
+    if type_ == "type" and isinstance(obj, PydanticType):
+        # 1. Tell Alembic to add the JSONB import to the migration file
+        autogen_context.imports.add("from sqlalchemy.dialects.postgresql import JSONB")
+        # 2. Return the exact string you want in the migration file
+        return "JSONB()"
+    
+    # Return False to let Alembic handle other types normally
+    return False
 # Import your Base and settings
 from app.core.db.database import Base
 from app.core.config.config import settings
@@ -58,6 +74,7 @@ def do_run_migrations(connection: Connection) -> None:
         connection=connection,
         target_metadata=target_metadata,
         compare_type=True,  # important for schema changes
+        render_item=render_custom_types
     )
 
     with context.begin_transaction():
