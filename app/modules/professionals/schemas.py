@@ -1,4 +1,6 @@
-from datetime import datetime
+import re
+from pydantic import field_validator
+from datetime import datetime, time
 from typing import Optional
 from pydantic import BaseModel, ConfigDict
 from app.modules.file.schemas import FileResponseSchema
@@ -9,7 +11,7 @@ class ProfessionalProfileResponse(BaseModel):
     """Professional profile response model"""
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    professional_profile_id: str
     user_id: str
 
     experience: str
@@ -34,6 +36,13 @@ class ProfessionalProfileResponse(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
 
+    # --- Scalable Scheduling Fields ---
+    work_start_time: Optional[time] = None
+    work_end_time: Optional[time] = None
+    buffer_between_bookings_minutes: int = 30
+    max_advance_booking_days: int = 3
+    min_advance_booking_minutes: int = 60
+
 
 class ProfessionalProfileUpdate(BaseModel):
     """Professional profile update model (citizenship files cannot be modified)"""
@@ -45,6 +54,12 @@ class ProfessionalProfileUpdate(BaseModel):
     is_available: Optional[bool] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+
+    work_start_time: Optional[time] = None
+    work_end_time: Optional[time] = None
+    buffer_between_bookings_minutes: Optional[int] = None
+    max_advance_booking_days: Optional[int] = None
+    min_advance_booking_minutes: Optional[int] = None
     
     @field_validator("province", "district", "municipality", mode="before")
     @classmethod
@@ -65,7 +80,7 @@ class ProfessionalDetailResponse(BaseModel):
     """Professional detail response with user info"""
     model_config = ConfigDict(from_attributes=True)
     
-    id: str
+    professional_profile_id: str
     user_id: str
     full_name: str
     phone_number: str
