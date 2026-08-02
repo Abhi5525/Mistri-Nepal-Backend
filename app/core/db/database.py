@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, sessionmaker
+
 from app.core.config.config import settings
 
 # Create async engine
@@ -10,21 +11,16 @@ engine = create_async_engine(
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
-    pool_recycle=3600
+    pool_recycle=3600,
 )
 
 # Create session factory
-AsyncSessionLocal = sessionmaker(
-    engine,
-    class_=AsyncSession,
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine,
     expire_on_commit=False,
-    autocommit=False,
-    autoflush=False
 )
 # ✅ Sync database URL uses psycopg2
-SYNC_DATABASE_URL = (
-    f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
-)
+SYNC_DATABASE_URL = f"postgresql://{settings.DB_USER}:{settings.DB_PASSWORD}@{settings.DB_HOST}:{settings.DB_PORT}/{settings.DB_NAME}"
 # ------------------ SYNC ENGINE ------------------
 sync_engine = create_engine(
     SYNC_DATABASE_URL,
@@ -37,9 +33,11 @@ SyncSessionLocal = sessionmaker(
     autocommit=False,
 )
 
+
 # Base class for models
 class Base(DeclarativeBase):
     pass
+
 
 # Dependency to get DB session
 async def get_db():
