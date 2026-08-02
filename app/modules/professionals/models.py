@@ -21,7 +21,7 @@ from app.modules.skills.models import Skill
 if TYPE_CHECKING:
     from app.modules.file.models import File
     from app.modules.users.models import User
-    # from app.modules.bookings.models import Booking
+    from app.modules.booking.models import Booking
     # from app.modules.reviews.models import Review
 
 professional_skills = Table(
@@ -104,5 +104,5 @@ class ProfessionalProfile(Base, TimestampMixin):
     skills: Mapped[list["Skill"]] = relationship(
         secondary=professional_skills, back_populates="professionals"
     )
-    # bookings: Mapped[list["Booking"]] = relationship(back_populates="professional")
+    bookings: Mapped[list["Booking"]] = relationship(back_populates="professional_profile")
     # reviews: Mapped[list["Review"]] = relationship(back_populates="professional")
