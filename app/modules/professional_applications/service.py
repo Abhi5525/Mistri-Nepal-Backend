@@ -291,8 +291,9 @@ async def respond_to_professional_application(
                     detail="A professional profile already exists for this user",
                 )
 
-            # Create ProfessionalProfile for user
+            prof_id = f"PR_{StringUtils.randomAlphaNumeric(10)}"
             new_profile = ProfessionalProfile(
+                professional_profile_id=prof_id,
                 user_id=application.user_id,
                 profile_image_id=application.profile_image_id,
                 citizenship_front_id=application.citizenship_front_id,

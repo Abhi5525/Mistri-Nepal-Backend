@@ -56,9 +56,9 @@ async def create_professional_profile(
                 user.role_id = prof_role.id
         
         # Create new professional profile
-        prof_id = "PROF_" + StringUtils.randomAlphaNumeric(10)
+        prof_id = "PR_" + StringUtils.randomAlphaNumeric(10)
         new_profile = ProfessionalProfile(
-            id=prof_id,
+            professional_profile_id=prof_id,
             user_id=user_id,
             province=province,
             district=district,
@@ -122,7 +122,7 @@ async def get_professional_by_id(
                 selectinload(ProfessionalProfile.skills),
                 selectinload(ProfessionalProfile.user)
             )
-            .where(ProfessionalProfile.id == profile_id)
+            .where(ProfessionalProfile.professional_profile_id == profile_id)
         )
         return result.scalar_one_or_none()
     except Exception as e:
@@ -139,7 +139,7 @@ async def update_professional_profile(
     """Update professional profile"""
     try:
         result = await db.execute(
-            select(ProfessionalProfile).where(ProfessionalProfile.id == profile_id)
+            select(ProfessionalProfile).where(ProfessionalProfile.professional_profile_id == profile_id)
         )
         profile = result.scalar_one_or_none()
         
@@ -178,7 +178,7 @@ async def add_skill_to_professional(
         prof_result = await db.execute(
             select(ProfessionalProfile)
             .options(selectinload(ProfessionalProfile.skills))
-            .where(ProfessionalProfile.id == profile_id)
+            .where(ProfessionalProfile.professional_profile_id == profile_id)
         )
         professional = prof_result.scalar_one_or_none()
         
@@ -226,7 +226,7 @@ async def remove_skill_from_professional(
         prof_result = await db.execute(
             select(ProfessionalProfile)
             .options(selectinload(ProfessionalProfile.skills))
-            .where(ProfessionalProfile.id == profile_id)
+            .where(ProfessionalProfile.professional_profile_id == profile_id)
         )
         professional = prof_result.scalar_one_or_none()
         
@@ -274,7 +274,7 @@ async def verify_professional(
     try:
         # Get professional
         result = await db.execute(
-            select(ProfessionalProfile).where(ProfessionalProfile.id == profile_id)
+            select(ProfessionalProfile).where(ProfessionalProfile.professional_profile_id == profile_id)
         )
         professional = result.scalar_one_or_none()
         
