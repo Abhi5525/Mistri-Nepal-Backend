@@ -19,7 +19,7 @@ class Review(Base, TimestampMixin):
     booking_id: Mapped[str] = mapped_column(
         String(13), ForeignKey("bookings.booking_id", ondelete="CASCADE"), unique=True, nullable=False
     )
-    user_id: Mapped[str] = mapped_column(
+    reviewer_id: Mapped[str] = mapped_column(
         String(13), ForeignKey("user.id", ondelete="CASCADE"), nullable=False, index=True
     )
     professional_profile_id: Mapped[str] = mapped_column(
@@ -31,7 +31,7 @@ class Review(Base, TimestampMixin):
 
     # Rating & Text are both nullable because user can submit rating now, text later.
     # Check constraint ensures rating is between 1 and 5 if it exists.
-    rating: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    rating: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, CheckConstraint = "(rating >= 1 AND rating <= 5)")
     review_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     __table_args__ = (
@@ -39,6 +39,6 @@ class Review(Base, TimestampMixin):
     )
 
     # ORM relationships
-    user: Mapped["User"] = relationship(back_populates="reviews")
+    reviewer: Mapped["User"] = relationship()
     professional_profile: Mapped["ProfessionalProfile"] = relationship(back_populates="reviews")
     booking: Mapped["Booking"] = relationship()
