@@ -1,8 +1,10 @@
-from typing import List, Optional
+from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, status
 
+from app.common.enum.booking_payment_status_enum import PaymentStatusEnum
+from app.common.enum.booking_status_enum import BookingStatusEnum
+from app.common.schema.location import Location
 from app.core.utils.string_utils import StringUtils
 from app.modules.booking.models import Booking
 from app.modules.booking.schemas import (
@@ -11,15 +13,13 @@ from app.modules.booking.schemas import (
     BookingStatusUpdate,
 )
 from app.modules.professionals.models import ProfessionalProfile
-from app.common.enum.booking_status_enum import BookingStatusEnum
-from app.common.enum.booking_payment_status_enum import PaymentStatusEnum
 
 
 async def create_booking(
     db: AsyncSession, user_id: str, data: BookingCreateRequest
 ) -> Booking:
     """Create a new booking."""
-    
+
     # Check if professional exists and fetch their details
     result = await db.execute(
         select(ProfessionalProfile).where(
@@ -32,7 +32,7 @@ async def create_booking(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Professional profile not found",
         )
-        
+
     if not professional.is_available:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -51,20 +51,19 @@ async def create_booking(
     duration_hours = duration_delta.total_seconds() / 3600.0
 
     # Backend Fee Calculation (base_rate/hourly_rate)
-    # The ProfessionalProfile schema uses base_rate or hourly_rate depending on the exact model. 
+    # The ProfessionalProfile schema uses base_rate or hourly_rate depending on the exact model.
     # Based on the models, it seems `base_rate` might be the field name on the model.
-    rate = getattr(professional, 'base_rate', getattr(professional, 'hourly_rate', 0.0))
+    rate = getattr(professional, "base_rate", getattr(professional, "hourly_rate", 0.0))
     total_fee = rate * duration_hours
-    
+
     booking_id = "BK_" + StringUtils.randomAlphaNumeric(10)
 
     # Professional's location snapshot (optional depending on if it exists)
     prof_location = None
     if professional.latitude and professional.longitude:
-        prof_location = {
-            "latitude": professional.latitude,
-            "longitude": professional.longitude
-        }
+        prof_location = Location(
+            latitude=professional.latitude, longitude=professional.longitude
+        )
 
     new_booking = Booking(
         booking_id=booking_id,
@@ -79,7 +78,7 @@ async def create_booking(
         payment_status=PaymentStatusEnum.UNPAID,
         status=BookingStatusEnum.PENDING_PAYMENT,
         notes=data.notes,
-        customer_location=data.customer_location.model_dump(),
+        customer_location=data.customer_location,
         professional_location=prof_location,
     )
 
@@ -89,17 +88,15 @@ async def create_booking(
     return new_booking
 
 
-async def get_booking_by_id(db: AsyncSession, booking_id: str) -> Optional[Booking]:
+async def get_booking_by_id(db: AsyncSession, booking_id: str) -> Booking | None:
     """Get a single booking by ID."""
-    result = await db.execute(
-        select(Booking).where(Booking.booking_id == booking_id)
-    )
+    result = await db.execute(select(Booking).where(Booking.booking_id == booking_id))
     return result.scalars().first()
 
 
 async def get_user_bookings(
     db: AsyncSession, user_id: str, skip: int = 0, limit: int = 10
-) -> tuple[List[Booking], int]:
+) -> tuple[list[Booking], int]:
     """Get all bookings for a user."""
     # Count total
     count_query = select(Booking).where(Booking.user_id == user_id)
@@ -116,16 +113,18 @@ async def get_user_bookings(
     )
     result = await db.execute(query)
     bookings = result.scalars().all()
-    
+
     return list(bookings), total_count
 
 
 async def get_professional_bookings(
     db: AsyncSession, professional_profile_id: str, skip: int = 0, limit: int = 10
-) -> tuple[List[Booking], int]:
+) -> tuple[list[Booking], int]:
     """Get all bookings for a professional."""
     # Count total
-    count_query = select(Booking).where(Booking.professional_profile_id == professional_profile_id)
+    count_query = select(Booking).where(
+        Booking.professional_profile_id == professional_profile_id
+    )
     count_result = await db.execute(count_query)
     total_count = len(count_result.scalars().all())
 
@@ -139,7 +138,7 @@ async def get_professional_bookings(
     )
     result = await db.execute(query)
     bookings = result.scalars().all()
-    
+
     return list(bookings), total_count
 
 
@@ -153,9 +152,9 @@ async def update_booking_status(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Booking not found",
         )
-        
+
     booking.status = status_data.status
-    
+
     await db.commit()
     await db.refresh(booking)
     return booking
@@ -171,14 +170,14 @@ async def update_booking_payment(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Booking not found",
         )
-        
+
     booking.paid_amount = payment_data.paid_amount
     booking.payment_status = payment_data.payment_status
-    
+
     # Calculate due amount safely, avoiding negative dues
     due = booking.total_fee - booking.paid_amount
     booking.due_amount = due if due > 0 else 0.0
-    
+
     await db.commit()
     await db.refresh(booking)
     return booking
