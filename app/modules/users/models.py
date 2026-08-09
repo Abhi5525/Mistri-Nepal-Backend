@@ -6,12 +6,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.common.models.timestamp_mixin import TimestampMixin
 from app.core.db.database import Base
+from app.modules.booking.models import Booking
+
 if TYPE_CHECKING:
     from app.modules.auth.models import Role
     from app.modules.file.models import File 
     from app.modules.professional_applications.models import ProfessionalApplication
     from app.modules.professionals.models import ProfessionalProfile
-    from app.modules.booking.models import Booking
 
 class User(Base, TimestampMixin):
     __tablename__ = "user"
@@ -47,7 +48,10 @@ class User(Base, TimestampMixin):
     professional_profile: Mapped[Optional["ProfessionalProfile"]] = relationship(
         back_populates="user", uselist=False
     )
-    bookings: Mapped[list["Booking"]] = relationship(back_populates="user")
+    bookings: Mapped[list["Booking"]] = relationship(
+        "Booking",
+        back_populates="user",
+    )
     
     last_login: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True

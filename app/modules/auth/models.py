@@ -6,9 +6,7 @@ from sqlalchemy import String, ForeignKey
 from sqlalchemy.dialects.postgresql import ENUM as SQLEnum ,JSONB
 from sqlalchemy.orm import Mapped, relationship, mapped_column
 from app.common.enum.role_enum import RoleEnum
-
-if TYPE_CHECKING:
-    from app.modules.users.models import User
+from app.modules.users.models import User
 class Authorization(Base, TimestampMixin):
     __tablename__ = "authorization"
     id: Mapped[str] = mapped_column(String(8), primary_key=True, index=True)

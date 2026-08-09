@@ -89,6 +89,18 @@ app.include_router(auth_router)
 app.include_router(file_router)
 app.include_router(professional_application_router)
 app.include_router(skill_router)
+
+from app.modules.users.router import user_router
+from app.modules.professionals.router import prof_router
+from app.modules.booking.router import booking_router
+from app.modules.reviews.router import review_router
+from app.modules.payments.router import payment_router
+
+app.include_router(user_router)
+app.include_router(prof_router)
+app.include_router(booking_router)
+app.include_router(review_router)
+app.include_router(payment_router)
 if __name__ == "__main__":
     import uvicorn
 

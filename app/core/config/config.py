@@ -52,6 +52,10 @@ class Settings(BaseSettings):
     ESEWA_SECRET_KEY: str = "8gBm/:&EnhH.1/q"
     ESEWA_BASE_URL: str = "https://rc-epay.esewa.com.np/api/epay/main/v2/form"
     
+    # Khalti
+    KHALTI_SECRET_KEY: str = "live_secret_key_68791341fdd94846a146f0457ff7b455" # Default placeholder for sandbox
+    KHALTI_BASE_URL: str = "https://a.khalti.com/api/v2"
+    
     @field_validator('ALLOWED_ORIGINS', mode='before')
     @classmethod
     def parse_origins(cls, v):
