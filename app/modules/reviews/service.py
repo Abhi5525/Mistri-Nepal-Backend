@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.utils.string_utils import StringUtils
 from app.modules.booking.models import Booking
 from app.modules.professionals.models import ProfessionalProfile
-from app.modules.reviews.models import reviewer_id
+from app.modules.reviews.models import Review
 
 
 async def update_professional_rating(db: AsyncSession, professional_profile_id: str):
@@ -15,11 +15,11 @@ async def update_professional_rating(db: AsyncSession, professional_profile_id: 
     """
     # Calculate new average and count
     stats_query = select(
-        func.avg(reviewer_id.rating).label("avg_rating"),
-        func.count(reviewer_id.rating).label("total_reviews"),
+        func.avg(Review.rating).label("avg_rating"),
+        func.count(Review.rating).label("total_reviews"),
     ).where(
-        reviewer_id.professional_profile_id == professional_profile_id,
-        reviewer_id.rating.isnot(None),
+        Review.professional_profile_id == professional_profile_id,
+        Review.rating.isnot(None),
     )
 
     result = await db.execute(stats_query)
@@ -43,10 +43,10 @@ async def update_professional_rating(db: AsyncSession, professional_profile_id: 
 
 async def get_review_by_booking(
     db: AsyncSession, booking_id: str
-) -> reviewer_id | None:
+) -> Review | None:
     """Fetch an existing review for a booking."""
     result = await db.execute(
-        select(reviewer_id).where(reviewer_id.booking_id == booking_id)
+        select(Review).where(Review.booking_id == booking_id)
     )
     return result.scalars().first()
 
@@ -57,7 +57,7 @@ async def upsert_review(
     booking_id: str,
     rating: int | None = None,
     review_text: str | None = None,
-) -> reviewer_id:
+) -> Review:
     """
     Creates a new review if it doesn't exist, or updates an existing one.
     This supports the "submit rating separately from review text" requirement.
@@ -85,10 +85,10 @@ async def upsert_review(
     else:
         # Create new
         review_id = "RV_" + StringUtils.randomAlphaNumeric(10)
-        review = reviewer_id(
+        review = Review(
             review_id=review_id,
             booking_id=booking_id,
-            reviewer_id=user_id,
+            Review=user_id,
             professional_profile_id=booking.professional_profile_id,
             rating=rating,
             review_text=review_text,
@@ -107,18 +107,18 @@ async def upsert_review(
 
 async def get_reviews_for_professional(
     db: AsyncSession, professional_profile_id: str, skip: int = 0, limit: int = 10
-) -> tuple[list[reviewer_id], int]:
+) -> tuple[list[Review], int]:
     """Gets paginated reviews for a professional."""
-    count_query = select(reviewer_id).where(
-        reviewer_id.professional_profile_id == professional_profile_id
+    count_query = select(Review).where(
+        Review.professional_profile_id == professional_profile_id
     )
     count_result = await db.execute(count_query)
     total = len(count_result.scalars().all())
 
     query = (
-        select(reviewer_id)
-        .where(reviewer_id.professional_profile_id == professional_profile_id)
-        .order_by(reviewer_id.created_at.desc())
+        select(Review)
+        .where(Review.professional_profile_id == professional_profile_id)
+        .order_by(Review.created_at.desc())
         .offset(skip)
         .limit(limit)
     )
