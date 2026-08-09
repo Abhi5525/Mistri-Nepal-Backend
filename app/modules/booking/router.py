@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db.database import get_db
+from app.core.security.authorization import authorize
 from app.core.security.security import get_current_user
 from app.modules.auth.schemas import JwtPayload
 from app.modules.booking import service
@@ -14,14 +15,15 @@ from app.modules.booking.schemas import (
 )
 from app.modules.professionals.service import get_professional_by_user_id
 
-booking_router = APIRouter(prefix="/bookings", tags=["Bookings"])
+booking_router = APIRouter(prefix="/booking", tags=["Bookings"])
 
 
-@booking_router.post("/", response_model=BookingResponse)
+@booking_router.post("", response_model=BookingResponse)
 async def create_booking(
     data: BookingCreateRequest,
     current_user: JwtPayload = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _=Depends(authorize)
 ):
     """Create a new booking."""
     return await service.create_booking(db, user_id=current_user.sub, data=data)
@@ -33,6 +35,7 @@ async def get_my_bookings(
     limit: int = 10,
     current_user: JwtPayload = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _=Depends(authorize)
 ):
     """Get all bookings made by the current user."""
     bookings, total = await service.get_user_bookings(
@@ -47,6 +50,7 @@ async def get_my_professional_bookings(
     limit: int = 10,
     current_user: JwtPayload = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _=Depends(authorize)
 ):
     """Get all bookings received by the current professional."""
     # First, get the professional profile of the logged in user
@@ -95,6 +99,7 @@ async def update_status(
     data: BookingStatusUpdate,
     current_user: JwtPayload = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _=Depends(authorize)
 ):
     """Update the status of a booking."""
     # Authorization checks should ideally go here to verify only the professional/admin can update status
@@ -107,6 +112,7 @@ async def update_payment(
     data: BookingPaymentUpdate,
     current_user: JwtPayload = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    _=Depends(authorize)
 ):
     """Update the payment details of a booking."""
     return await service.update_booking_payment(db, booking_id, data)
