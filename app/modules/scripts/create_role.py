@@ -1,13 +1,24 @@
-# app/scripts/insert_roles.py
-from app.core.db.database import Base, sync_engine, SyncSessionLocal
-from app.modules.auth.models import Role
-from app.modules.users.models import User  # noqa: F401
-from app.core.utils.string_utils import StringUtils
 from app.common.enum.role_enum import RoleEnum
+from app.core.db.database import Base, SyncSessionLocal, sync_engine
+from app.core.utils.string_utils import StringUtils
+
 # Import all models to ensure they're registered with SQLAlchemy
+from app.modules.auth.models import Authorization, Role  # noqa: F401
+from app.modules.booking.models import Booking  # noqa: F401
+from app.modules.file.models import File  # noqa: F401
+from app.modules.payments.models import Payment  # noqa: F401
+from app.modules.professional_applications.models import (  # noqa: F401
+    ProfessionalApplication,
+)
+from app.modules.professionals.models import (  # noqa: F401
+    ProfessionalProfile,
+    professional_skills,
+)
+from app.modules.reviews.models import Review  # noqa: F401
+from app.modules.skills.models import Skill  # noqa: F401
+from app.modules.users.models import User  # noqa: F401
 
-
-# ✅ Ensure the table exists
+# Ensure tables exist
 Base.metadata.create_all(bind=sync_engine)
 
 
@@ -37,14 +48,14 @@ def create_roles_if_not_exist():
                     description=role_description,
                 )
                 session.add(new_role)
-                print(f"✅ Created role: {role_name}")
+                print(f"[SUCCESS] Created role: {role_name}")
             else:
-                print(f"⚠️ Role already exists: {role_name}")
+                print(f"[INFO] Role already exists: {role_name}")
 
         session.commit()
     except Exception as e:
         session.rollback()
-        print(f"❌ Error while inserting roles: {e}")
+        print(f"[ERROR] Error while inserting roles: {e}")
     finally:
         session.close()
 
