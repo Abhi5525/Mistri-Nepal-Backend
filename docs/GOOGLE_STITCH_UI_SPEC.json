@@ -1,14 +1,67 @@
 {
-  "project_name": "Mistri Nepal Mobile",
+  "project_name": "Mistri Nepal Role-Based Mobile App",
   "version": "1.0.0",
-  "description": "Google Stitch UI Design Specification for Mistri Nepal - On-Demand Local Professional Marketplace Flutter Application",
+  "description": "Google Stitch UI Design Specification for the Mistri Nepal Client and Professional Flutter mobile application. Admin workflows belong to a separate web panel.",
   "target_framework": "Flutter",
+  "app_architecture": {
+    "application_count": 1,
+    "description": "One Flutter mobile app with role-based navigation and UI for Client and Professional users.",
+    "role_selection": "Select the mobile shell from the authenticated user's backend role.",
+    "shared_features": [
+      "authentication",
+      "profile_settings",
+      "file_uploads",
+      "booking_details"
+    ],
+    "admin_in_mobile_app": false
+  },
+  "platform_scope": {
+    "mobile_platforms": [
+      "iOS",
+      "Android"
+    ],
+    "mobile_roles": [
+      "CLIENT",
+      "PROFESSIONAL"
+    ],
+    "admin_platform": "Separate responsive web panel",
+    "admin_mobile_screens": false
+  },
+  "backend_contract": {
+    "base_path": "/api/v1",
+    "implemented_mobile_domains": [
+      "authentication",
+      "user_profiles",
+      "skills",
+      "professional_search",
+      "professional_applications",
+      "bookings",
+      "payments",
+      "reviews",
+      "file_uploads"
+    ],
+    "payment_methods": [
+      "ESEWA",
+      "KHALTI"
+    ],
+    "admin_web_domains": [
+      "professional_application_review",
+      "user_records",
+      "professional_records"
+    ],
+    "not_currently_exposed": [
+      "tracking_websocket",
+      "in_app_chat",
+      "arrival_otp",
+      "live_fcm_workflow"
+    ]
+  },
   "design_system": {
     "theme": {
       "mode": "Light and Dark Mode Compatible",
       "colors": {
-        "primary": "#1E3A8A",
-        "primary_light": "#3B82F6",
+        "primary": "#006B7D",
+        "primary_light": "#338A98",
         "accent": "#F59E0B",
         "accent_hover": "#D97706",
         "secondary_emerald": "#10B981",
@@ -51,25 +104,25 @@
         "body": "Carousel displaying 3 key benefits: 1. Find Nearest Plumbers & Electricians, 2. Book Certified Professionals, 3. Secure 10% eSewa Deposit Payments",
         "footer": "Primary Action Button 'Get Started' and Secondary Link 'Login to Existing Account'"
       },
-      "stitch_generation_prompt": "Design a modern mobile onboarding splash screen for an on-demand home service app called Mistri Nepal. Dark blue header (#1E3A8A) with vibrant amber accents (#F59E0B). Smooth horizontal carousel cards with illustrations of Nepalese skilled workers. Rounded CTA button 'Get Started' at the bottom."
+      "stitch_generation_prompt": "Design a modern mobile onboarding splash screen for an on-demand home service app called Mistri Nepal. Teal header (#006B7D) with vibrant amber accents (#F59E0B). Smooth horizontal carousel cards with illustrations of Nepalese skilled workers. Rounded CTA button 'Get Started' at the bottom."
     },
     {
       "screen_id": "STITCH-02-AUTH-LOGIN",
       "screen_name": "Phone Authentication Screen",
-      "user_role": "Client / Professional / Admin",
+      "user_role": "Client / Professional",
       "description": "Clean login interface with Nepal country code (+977) pre-selected, password input, and biometric login option.",
       "layout_structure": {
         "header": "Welcome back title with subtle background geometry",
         "form": "Phone input field (+977 prefix), password field with show/hide eye toggle, 'Forgot Password?' link",
         "action": "Full-width primary button 'Sign In' with loading state support, Fingerprint/FaceID icon button at the bottom"
       },
-      "stitch_generation_prompt": "Clean phone login UI screen for Flutter app. Nepal flag icon next to +977 phone input field. Password input with eye icon. Deep royal blue primary button. Subtle grey card container on light slate background."
+      "stitch_generation_prompt": "Clean phone login UI screen for Flutter app. Nepal flag icon next to +977 phone input field. Password input with eye icon. Teal primary button (#006B7D). Subtle grey card container on light slate background."
     },
     {
       "screen_id": "STITCH-03-CLIENT-HOME-DISCOVERY",
       "screen_name": "Client Home Discovery Dashboard",
       "user_role": "Client",
-      "description": "Main hub for clients to browse skills, search local technicians, and view top-rated professionals nearby.",
+      "description": "Main hub for clients to browse skills and search professionals by district and optional skill. GPS proximity ranking requires a future backend location contract.",
       "layout_structure": {
         "top_bar": "Location selector dropdown (e.g. 'Kathmandu, Baneshwor 📍') and notification bell icon with badge",
         "search_bar": "Search field 'Find Plumber, Electrician, Carpenter...' with filter icon",
@@ -83,7 +136,8 @@
       "screen_id": "STITCH-04-PRO-SEARCH-MAP",
       "screen_name": "Interactive Proximity Search Map View",
       "user_role": "Client",
-      "description": "Full-screen interactive map showing nearby available professionals with distance radius overlays.",
+      "implementation_status": "Future design; the current backend exposes district-based search, not a proximity-map endpoint.",
+      "description": "Optional future map experience for browsing professionals by proximity.",
       "layout_structure": {
         "map_background": "Interactive OpenStreetMap rendering with current user pin and custom tool-marker pins for professionals",
         "top_overlay": "Distance radius slider widget (1km to 20km) with filter chips ('Available Now', 'Top Rated', 'eSewa Verified')",
@@ -124,40 +178,42 @@
       "screen_id": "STITCH-07-PAYMENT-SUMMARY-ESEWA",
       "screen_name": "Booking Order Summary & eSewa Payment",
       "user_role": "Client",
-      "description": "Itemized bill breakdown highlighting the mandatory 10% deposit via eSewa digital wallet.",
+      "description": "Itemized bill breakdown for the configured booking payment, with eSewa or Khalti selected as the payment method.",
       "layout_structure": {
         "summary_card": "Bill details: Estimated Total (रु 1,500), Advance Deposit (10% = रु 150), Remaining Cash/Digital on Completion (रु 1,350)",
-        "payment_method": "Selected payment gateway option with eSewa green logo icon, radio button selection",
+        "payment_method": "Payment gateway options for eSewa and Khalti with radio button selection",
         "terms_notice": "Security note: 'Your deposit is held in escrow until service completion'",
-        "action_button": "Vibrant eSewa green button 'Pay रु 150 with eSewa'"
+        "action_button": "Primary button labeled with the selected provider, for example 'Pay रु 150 with eSewa'"
       },
-      "stitch_generation_prompt": "Payment checkout order summary UI screen. Clean bill receipt card showing 10% advance deposit breakdown in Nepalese Rupees (रु), eSewa digital wallet payment option with eSewa logo, green pay button."
+      "stitch_generation_prompt": "Payment checkout order summary UI screen. Show the booking total, advance and due amounts in Nepalese Rupees (रु), selectable eSewa and Khalti payment options, and a provider-specific payment button."
     },
     {
       "screen_id": "STITCH-08-REALTIME-TRACKING-MAP",
-      "screen_name": "Live Professional GPS Tracking Screen",
+      "screen_name": "Booking Status and Location Screen",
       "user_role": "Client / Professional",
-      "description": "Real-time navigation screen tracking moving professional toward client destination.",
+      "implementation_status": "Future design; live tracking is not currently exposed by the backend.",
+      "description": "Booking progress screen showing the current booking status and location information when available. It must not imply a live tracking WebSocket until the backend exposes one.",
       "layout_structure": {
-        "map_view": "Live map showing route polyline between pro location and client home with animated vehicle/worker pin",
+        "map_view": "Optional map showing stored professional and customer locations; live route animation is reserved for a future API",
         "top_eta_card": "Floating ETA badge: 'Professional is arriving in 8 mins (1.4 km)'",
-        "bottom_pro_card": "Expanded bottom card with pro photo, phone call button, message chat button, OTP verification code ('Share OTP 4829 with pro on arrival')",
+        "bottom_pro_card": "Expanded bottom card with professional details and booking actions; call, chat, and arrival OTP are future capabilities",
         "status_stepper": "Horizontal step bar: Booked ➔ En Route ➔ Arrived ➔ In Progress ➔ Done"
       },
-      "stitch_generation_prompt": "Live GPS tracking screen UI for Flutter app. Full screen map with polyline route, floating ETA pill, bottom sheet with driver info, quick call/chat buttons, and 4-digit arrival OTP code badge."
+      "stitch_generation_prompt": "Design a Flutter booking status screen for Client and Professional users. Show a clear booking status stepper and optional stored-location map. Mark live tracking, chat, and arrival OTP as future capabilities rather than presenting them as available actions."
     },
     {
       "screen_id": "STITCH-09-IN-APP-CHAT",
-      "screen_name": "Real-Time Direct Messaging Screen",
+      "screen_name": "Direct Messaging Screen (Future)",
       "user_role": "Client / Professional",
-      "description": "In-app messaging interface for instant communication, photo sharing, and quick status responses.",
+      "implementation_status": "Future design; in-app chat is not currently exposed by the backend.",
+      "description": "Reserved UI concept for future in-app messaging between a client and professional.",
       "layout_structure": {
         "app_bar": "Pro/Client avatar, name, online status indicator, and call icon",
         "message_list": "Chat bubbles (Client right in blue, Pro left in grey) with timestamp checkmarks",
         "quick_replies": "Horizontal scroll pill chips: 'I am at the gate', 'Please wait 5 mins', 'Send location'",
         "input_bar": "Attachment camera icon, text input box, send button"
       },
-      "stitch_generation_prompt": "Real-time chat UI screen for Flutter app with styled message bubbles, quick response chip pills above input bar, camera attachment button, and active status bar."
+      "stitch_generation_prompt": "Create a future Flutter direct-messaging UI concept for Client and Professional users with styled message bubbles, quick response chips, camera attachment, and an online status bar. Label this flow as unavailable until a chat API is implemented."
     },
     {
       "screen_id": "STITCH-10-KYC-APPLICATION-FORM",
@@ -176,7 +232,8 @@
       "screen_id": "STITCH-11-PRO-WORKER-DASHBOARD",
       "screen_name": "Professional Worker Dashboard",
       "user_role": "Professional",
-      "description": "Daily operational screen for professionals to manage online availability, accept incoming job requests, and view daily earnings.",
+      "implementation_status": "Partially implemented; booking lists and status updates are available, while availability toggles and earnings are future capabilities.",
+      "description": "Daily operational screen for professionals to review received bookings and update booking status.",
       "layout_structure": {
         "status_toggle_card": "Prominent card with switch toggle: 'YOU ARE ONLINE (Receiving nearby jobs in 5km radius)'",
         "earnings_summary": "2-column stats box: 'Today: रु 2,400' | 'This Week: रु 14,500'",
@@ -185,16 +242,17 @@
       "stitch_generation_prompt": "Worker mobile dashboard screen for Flutter. Top online/offline toggle switch card in green/grey state, daily earnings stats box, list of incoming service request cards with Accept/Decline action buttons."
     },
     {
-      "screen_id": "STITCH-12-ADMIN-KYC-VERIFICATION",
-      "screen_name": "Admin Verification & Approval Screen",
-      "user_role": "Admin",
-      "description": "Audit screen for Admin team to review submitted professional KYC documents and approve/reject applications.",
+      "screen_id": "STITCH-12-ADMIN-WEB-KYC-VERIFICATION",
+      "screen_name": "Admin Web Panel - Verification & Approval",
+      "platform": "Responsive Web Panel",
+      "user_role": "Admin (web only)",
+      "description": "Desktop-oriented audit view for the separate Admin web panel to review submitted professional KYC documents and approve or reject applications. This screen is not part of the Flutter mobile app.",
       "layout_structure": {
         "applicant_header": "Applicant name, phone number, submitted date, and overall status tag 'PENDING'",
         "document_viewer": "Side-by-side zoomable image previews of Citizenship Front and Back photos",
         "audit_actions": "Row of 2 buttons: 'Reject Application' (opens reason dialog) and 'Approve & Verify Professional' (emerald green button)"
       },
-      "stitch_generation_prompt": "Admin mobile dashboard review screen. Side-by-side document image preview container, applicant metadata list, and prominent Approve / Reject action buttons."
+      "stitch_generation_prompt": "Design a responsive desktop web administration panel for Mistri Nepal. Show an applicant table with filters and pagination, applicant metadata, side-by-side zoomable citizenship document previews, and prominent Approve and Reject actions. Use the existing Mistri Nepal teal (#006B7D) and emerald design tokens. This is a web panel, not a mobile screen."
     }
   ]
 }

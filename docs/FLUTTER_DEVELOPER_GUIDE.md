@@ -1,136 +1,176 @@
-# 📱 Mistri Nepal - Flutter Mobile App Developer Guide & Architecture Overview
+# Mistri Nepal Flutter Developer Guide
 
----
+## Platform scope
 
-## 📌 Executive Summary & Project Objectives
+Mistri Nepal is one Flutter mobile application with role-based UI:
 
-**App Name**: **Mistri Nepal** (formerly *Service Manpower*)  
-**Platform Scope**: iOS & Android Mobile Applications built with Flutter (3.19+)  
-**Backend API**: FastAPI (Python 3.10+, PostgreSQL, Redis, Cloudinary, eSewa, Firebase FCM)
+- **Client UI**: discovers professionals, creates bookings, pays, and reviews completed services.
+- **Professional UI**: completes onboarding, manages a professional profile, and manages received bookings.
 
-### 🎯 Primary Objectives
-**Mistri Nepal** is an on-demand local service marketplace platform designed to bridge the gap between household/commercial clients and vetted skilled local professionals (*Mistris*—plumbers, electricians, carpenters, mechanics, painters, HVAC technicians, etc.) across Nepal.
+Both roles are delivered from the same mobile codebase and app binary. After
+authentication, the app reads the user's role and selects the appropriate
+navigation shell, dashboard, routes, permissions, and actions. Shared features
+such as authentication, profile settings, uploads, notifications, and booking
+details should be implemented once and reused by both role-specific sections.
 
-Key Platform Objectives:
-1. **Instant & Proximity-Based Discovery**: Enable clients to find verified professionals near their exact GPS coordinates within seconds.
-2. **Transparent Booking & Time Slot Management**: Provide real-time availability calendar slots with automatic conflict detection and buffer time rules.
-3. **Vetted Professional Network (KYC Verification)**: Streamline professional onboarding through mandatory document upload (Citizenship card, Licenses, Skill certificates) and manual/automated Admin review.
-4. **Secure Digital Payments (eSewa)**: Support 10% advance deposit payments via Nepal’s leading digital wallet (eSewa) to confirm bookings and prevent client no-shows.
-5. **Real-time Proximity & Updates**: Provide live GPS tracking of moving professionals, WebSocket alerts, and Firebase Push Notifications for booking state changes.
-6. **Trust & Quality Assurance**: Ratings, reviews, emergency service modes, and transparent pricing structures.
+The **Admin experience is a separate web panel**. Do not add Admin navigation,
+Admin screens, or Admin-only actions to the Flutter mobile application. The web
+panel uses an admin account and the same `/api/v1` backend to review records,
+manage users and professionals, and approve or reject professional applications.
 
----
+## Product purpose
 
-## 👥 User Roles & Core Workflows
+Mistri Nepal connects customers with local service professionals across Nepal.
+The single mobile app supports professional discovery, location-based search,
+professional onboarding, booking, payment, and reviews. The backend is a
+FastAPI service backed by PostgreSQL.
 
-The application handles three distinct user roles within a unified/role-switched Flutter mobile application or modular app architecture:
+## Current backend capabilities
 
+All routes below are prefixed with `/api/v1`.
+
+### Shared mobile features
+
+- `POST /auth/register` and `POST /auth/login` for phone-based authentication.
+- `GET /users/me` and `PUT /users/me` for the current user's profile.
+- `POST /file/upload` for multipart uploads backed by Cloudinary.
+- `GET /skills` for the paginated skill catalog.
+- `GET /professionals/{profile_id}` for professional details.
+- `GET /professionals/search/location` for district and optional skill search.
+
+### Client features
+
+- `POST /booking` creates a booking with professional, start/end time, notes,
+  and customer location.
+- `GET /booking/me` lists the client's bookings.
+- `GET /booking/{booking_id}` returns an authorized booking.
+- `POST /payments/initiate` starts an eSewa or Khalti payment.
+- `POST /payments/verify` verifies the provider result.
+- `POST /reviews/{booking_id}/rate` submits a 1-5 rating.
+- `POST /reviews/{booking_id}/text` submits written feedback.
+- `GET /reviews/professional/{profile_id}` lists professional reviews.
+
+### Professional features
+
+- `POST /professionalApplication` submits an application after document
+  uploads.
+- `GET /professionalApplication/me` reads the current application status.
+- `GET /professionals/me` and `PUT /professionals/me` manage the professional
+  profile after approval.
+- `GET /booking/professional/me` lists bookings received by the professional.
+- `PATCH /booking/{booking_id}/status` updates booking status.
+- `PATCH /booking/{booking_id}/payment` updates booking payment details.
+
+### Admin web-panel features
+
+These are for the separate web panel, not Flutter:
+
+- `GET /professionalApplication` lists applications with pagination and filters.
+- `PATCH /professionalApplication/{application_id}/status` approves or rejects
+  an application and promotes an approved applicant to `PROFESSIONAL`.
+- Admin-only user and professional record lookup and management routes.
+- `GET /professionals/admin/pending` lists pending professional profiles.
+
+Booking, payment, and review modules were recently added to the backend. The
+current API does **not** expose the previously proposed tracking WebSocket,
+in-app chat, arrival OTP, or live FCM workflow. Do not present those as
+implemented features in the mobile app until corresponding backend routes are
+added.
+
+## Flutter architecture
+
+Use Riverpod or BLoC/Cubit with a layered structure:
+
+```text
+Data -> Domain -> Presentation
 ```
-                          ┌───────────────────────────┐
-                          │   Mistri Nepal Flutter    │
-                          └─────────────┬─────────────┘
-                                        │
-           ┌────────────────────────────┼────────────────────────────┐
-           ▼                            ▼                            ▼
-┌─────────────────────┐      ┌─────────────────────┐      ┌─────────────────────┐
-│     CLIENT ROLE     │      │  PROFESSIONAL ROLE  │      │     ADMIN ROLE      │
-├─────────────────────┤      ├─────────────────────┤      ├─────────────────────┤
-│ • Search nearby tech│      │ • KYC Application   │      │ • Review KYC apps   │
-│ • Select time slot  │      │ • Availability toggle│     │ • Approve/Reject    │
-│ • Pay 10% deposit   │      │ • Accept/Decline job│      │ • Platform metrics  │
-│ • Live GPS tracking │      │ • Navigation & OTP  │      │ • Dispute audit     │
-│ • Post service review│     │ • Earnings ledger   │      │ • User management   │
-└─────────────────────┘      └─────────────────────┘      └─────────────────────┘
-```
 
----
+Keep API models immutable and generate serialization code with
+`freezed`/`json_serializable` where appropriate. Use one mobile router with
+role guards. It should select a Client or Professional shell after login,
+while keeping shared routes outside both shells:
 
-## 🔍 Codebase Implementation Status vs. Documentation Roadmap
-
-The backend codebase is actively transitioning from a legacy Django application to a modern, async **FastAPI** architecture. Below is the state of implementation:
-
-### 🟢 Fully Implemented in FastAPI Backend (`app/modules/`)
-* **Authentication (`app/modules/auth`)**: JWT access/refresh token generation, password hashing (Bcrypt), phone number login/register.
-* **User Management (`app/modules/users`)**: Profile fetch, updates, role assignment (`CLIENT`, `PROFESSIONAL`, `ADMIN`).
-* **Media & Cloud Storage (`app/modules/file` & `app/modules/cloudinary`)**: Multipart file uploads to Cloudinary for user avatars and document images.
-* **Skill Catalog (`app/modules/skills`)**: Skill definitions, categories, icon metadata.
-* **Professional KYC Applications (`app/modules/professional_applications`)**: Application submission, status tracking (`PENDING`, `APPROVED`, `REJECTED`), and Admin approval endpoint promoting users to `PROFESSIONAL` role.
-* **Professional Profiles (`app/modules/professionals`)**: Profile queries, bio, skills linking.
-
-### 🟡 Specified in Documentation (`docs/`) & Remaining for Implementation
-*(Developers should reference the indicated `docs/` files when integrating these APIs)*:
-* **Booking Engine & Slot Management** (`docs/07-BOOKING-SYSTEM.md` & `app/modules/booking/models.py`): Time slot generation, 30-minute buffer enforcement, advance booking rules, status state machine (`PENDING` ➔ `ACCEPTED` ➔ `IN_PROGRESS` ➔ `COMPLETED` / `CANCELLED`).
-* **Geospatial & Distance Queries** (`docs/06-LOCATION-SERVICES.md`): Haversine distance calculations, radius searches using PostgreSQL `earthdistance`, and OSRM route duration estimates.
-* **eSewa Payment Integration** (`docs/08-PAYMENT-INTEGRATION.md`): eSewa ePay v2 HMAC-SHA256 signature generation, transaction verification callbacks, 10% deposit calculations.
-* **Real-time WebSockets & FCM Push Notifications** (`docs/11-REALTIME-FEATURES.md`): WebSocket endpoint `/ws/tracking/{booking_id}` for live GPS streaming and Firebase Cloud Messaging payload handlers.
-* **Ratings & Review System** (`docs/09-RATING-REVIEWS.md`): 1-to-5 star ratings, feedback comments, automatic recalculation of professional rating score.
-* **Enhanced Modules** (`docs/15-ENHANCED-FEATURES.md`): Dynamic surge pricing multipliers, emergency priority service queue, neighbor group discounts, subscription memberships.
-
----
-
-## 🛠️ Key Technical Considerations for Flutter Developers
-
-### 1. State Management & Architecture
-* **Recommended Pattern**: **Riverpod (v2.x)** with `AsyncNotifierProvider` or **BLoC / Cubit** with Clean Architecture layers (`Data` ➔ `Domain` ➔ `Presentation`).
-* Keep UI components purely declarative, utilizing immutable state models generated via `freezed` or `json_serializable`.
-
-### 2. Authentication Lifecycle & Token Management
-* Store JWT Access Tokens and Refresh Tokens securely in **Flutter Secure Storage** (`Keychain` on iOS, `EncryptedSharedPreferences` on Android).
-* Implement a **Dio Interceptor** for handling:
-  * Injection of `Authorization: Bearer <access_token>` header on requests.
-  * Automatic token refresh loop when HTTP `401 Unauthorized` is encountered.
-  * Force logout & redirection to Login Screen if refresh token is expired or revoked.
-
-### 3. Geolocation & Interactive Maps
-* **Location Service**: Use `geolocator` plugin with fine location permissions (`ACCESS_FINE_LOCATION`).
-* **Map Tile Rendering**: Use `flutter_map` with OpenStreetMap or GalliMaps tile servers (free, open source).
-* **Background Tracking**: For professionals on active bookings, implement `workmanager` or `flutter_background_service` to stream lat/lng coordinates to the WebSocket endpoint `/ws/tracking/{booking_id}` every 10–30 seconds.
-
-### 4. KYC Document Capture & Upload
-* Use `image_picker` + `camera` for document scanning.
-* Apply local client-side compression (e.g. `flutter_image_compress`) to limit payload sizes under 5MB.
-* Upload image files via `/api/v1/file/upload` to receive a hosted Cloudinary URL before embedding the URL into the `/api/v1/professionalApplication` POST request payload.
-
-### 5. eSewa Payment Integration Workflow
-* Generate eSewa request parameters (including total amount, product code, unique transaction UUID, and HMAC-SHA256 signature) via backend endpoints.
-* Open eSewa web gateway in a `webview_flutter` modal.
-* Intercept redirect URLs (`success_url` and `failure_url`). Upon detecting a successful redirect, trigger backend verification `/api/v1/payment/esewa/verify`.
-
-### 6. Offline Support & Local Caching
-* Use **Hive** or **Isar** database for offline caching:
-  * Cache client booking list, professional details, and skill catalogs for instant app launch.
-  * Queue offline actions (e.g., app reviews, booking requests) and flush them when `connectivity_plus` detects connection restoration.
-
----
-
-## 📱 Folder Structure for Flutter Project
-
-```
+```text
 lib/
-├── main.dart                       # Entry point (ProviderScope / Global overrides)
+├── main.dart
 ├── config/
-│   ├── api_config.dart             # API base URL (/api/v1), timeout constants
-│   ├── app_theme.dart              # Color tokens, Google Fonts typography, dark mode
-│   └── routes.dart                 # GoRouter configuration & role guards
+│   ├── api_config.dart
+│   ├── app_theme.dart
+│   └── routes.dart
 ├── core/
 │   ├── network/
-│   │   ├── dio_client.dart         # Custom Dio setup
-│   │   ├── api_interceptors.dart   # Auth token injection & refresh handler
-│   │   └── error_handler.dart      # Standardized failure handling
+│   │   ├── dio_client.dart
+│   │   ├── api_interceptors.dart
+│   │   └── error_handler.dart
 │   ├── storage/
-│   │   ├── secure_storage.dart     # JWT token storage
-│   │   └── hive_storage.dart       # Offline box definitions
+│   │   └── secure_storage.dart
 │   └── utils/
-│       ├── distance_formatter.dart # Format meters/kilometers
-│       └── currency_formatter.dart # NPR (रु) currency formatting
 ├── features/
-│   ├── auth/                       # Login, Register, Forgot Password
-│   ├── kyc_registration/           # Professional application flow & file picker
-│   ├── home_discovery/             # Category browser, search, radius filter map
-│   ├── professional_profile/       # Bio, skills list, portfolio, reviews
-│   ├── booking/                    # Slot picker, address map, confirmation
-│   ├── tracking/                   # Real-time WebSocket map & status updates
-│   ├── payment/                    # eSewa WebView controller & verification
-│   └── reviews/                    # Rating dialog & customer feedback
-└── widgets/                        # Shared reusable widgets (Buttons, Shimmers, Cards)
+│   ├── auth/
+│   ├── shared/
+│   │   ├── profile/
+│   │   ├── booking_details/
+│   │   └── file_upload/
+│   ├── client/                    # Client-only screens and navigation
+│   │   ├── discovery/
+│   │   ├── professional_profile/
+│   │   ├── booking/
+│   │   ├── payment/
+│   │   └── reviews/
+│   └── professional/              # Professional-only screens and navigation
+│       ├── application/
+│       ├── profile/
+│       └── bookings/
+└── widgets/
 ```
+
+## Authentication
+
+Store access and refresh tokens in Flutter Secure Storage. Configure a Dio
+interceptor to attach `Authorization: Bearer <access-token>` and handle `401`
+responses. If refresh is unavailable or rejected, clear credentials and route
+the user to login.
+
+The API uses the role values `CLIENT`, `PROFESSIONAL`, and `ADMIN`. `CLIENT`
+and `PROFESSIONAL` select role-based UI within the same app. `ADMIN` must be
+rejected by the mobile router and directed to the separate web-panel flow
+rather than rendered as a mobile dashboard.
+
+If a client applies to become a professional, keep the user in the same app
+while showing application status screens. Only show the Professional shell
+after the backend has approved the application and the authenticated role is
+`PROFESSIONAL`. Do not create a second professional app.
+
+## Uploading professional documents
+
+1. Capture or select documents with `image_picker`/`camera`.
+2. Compress images locally and keep uploads within the configured 5 MB limit.
+3. Upload each file to `POST /api/v1/file/upload`.
+4. Send the returned file reference in the
+   `POST /api/v1/professionalApplication` payload.
+
+## Payment flow
+
+1. Call `POST /api/v1/payments/initiate` with `booking_id`, `payment_method`
+   (`ESEWA` or `KHALTI`), and the required `payment_type`.
+2. Open the returned eSewa payload or Khalti `payment_url`.
+3. After the provider completes, call `POST /api/v1/payments/verify`.
+4. Send `esewa_data` for eSewa or `pidx` for Khalti.
+
+Do not generate payment signatures in Flutter; payment initialization and
+verification belong to the backend.
+
+## Local caching and permissions
+
+Use `connectivity_plus` with Hive or Isar only for read caching and resilient
+UI states. Do not queue a booking or payment as successful while offline.
+Request location permission only for discovery/search experiences that need it.
+The current backend supports district-based professional search; a live map or
+background tracking UI requires a future backend location contract.
+
+## UI implementation guidance
+
+Use the companion [Google Stitch UI specification](./GOOGLE_STITCH_UI_SPEC.json)
+for visual tokens and screen prompts. The mobile UI specification covers only
+Client and Professional screens. Admin tables, application review, filters,
+and record details belong in the separate web-panel design system.
