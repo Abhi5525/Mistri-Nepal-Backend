@@ -61,13 +61,7 @@ class ProfessionalProfileUpdate(BaseModel):
     max_advance_booking_days: Optional[int] = None
     min_advance_booking_minutes: Optional[int] = None
     
-    @field_validator("province", "district", "municipality", mode="before")
-    @classmethod
-    def validate_location_fields(cls, v):
-        if v and not re.match(r'^[a-zA-Z\s\-\']+$', v):
-            raise ValueError("Location fields must contain only letters, spaces, hyphens, and apostrophes")
-        return v.strip() if v else None
-    
+ 
     @field_validator("about_yourself", mode="before")
     @classmethod
     def validate_about(cls, v):

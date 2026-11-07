@@ -11,10 +11,24 @@ from app.modules.professional_applications.models import ProfessionalApplication
 from app.modules.professionals.models import ProfessionalProfile, professional_skills
 from app.modules.skills.models import Skill
 from app.modules.booking.models import Booking
+from app.modules.reviews.models import Review
+from app.modules.payments.models import Payment
 from alembic import context
 
 # Import your custom type at the top of env.py
 from app.core.pydantic_middleware.custom_typedecorator import PydanticType
+
+def compare_custom_types(
+    context,
+    inspected_column,
+    metadata_column,
+    inspected_type,
+    metadata_type,
+):
+    if isinstance(metadata_type, PydanticType):
+        return False
+
+    return None
 
 def render_custom_types(type_, obj, autogen_context):
     """
@@ -73,10 +87,9 @@ def do_run_migrations(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
-        compare_type=True,  # important for schema changes
-        render_item=render_custom_types
+        compare_type=compare_custom_types,
+        render_item=render_custom_types,
     )
-
     with context.begin_transaction():
         context.run_migrations()
 
